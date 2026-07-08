@@ -104,6 +104,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(false);
+            engine.setLongRangePickupEnabled(false);
             engine.setEchoCancellationEnabled(false);
             engine.setSelfVoiceReductionEnabled(profileEnabled);
             engine.setNoiseSuppressionEnabled(true);
@@ -114,6 +115,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(false);
+            engine.setLongRangePickupEnabled(false);
             engine.setEchoCancellationEnabled(false);
             engine.setSelfVoiceReductionEnabled(false);
             engine.setNoiseSuppressionEnabled(true);
@@ -124,6 +126,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(true);
+            engine.setLongRangePickupEnabled(true);
             engine.setEchoCancellationEnabled(false);
             engine.setSelfVoiceReductionEnabled(false);
             engine.setNoiseSuppressionEnabled(true);
@@ -134,6 +137,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setBoneConductionNoiseControlEnabled(true);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(true);
+            engine.setLongRangePickupEnabled(true);
             engine.setEchoCancellationEnabled(false);
             engine.setSelfVoiceReductionEnabled(true);
             engine.setNoiseSuppressionEnabled(true);
@@ -145,6 +149,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(true);
+            engine.setLongRangePickupEnabled(false);
             engine.setEchoCancellationEnabled(false);
             engine.setSelfVoiceReductionEnabled(true);
             engine.setNoiseSuppressionEnabled(true);

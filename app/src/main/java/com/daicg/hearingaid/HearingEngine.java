@@ -51,6 +51,7 @@ public final class HearingEngine {
     private boolean automaticGainEnabled;
     private boolean voiceEnhancementEnabled = true;
     private boolean farPickupEnabled = true;
+    private boolean longRangePickupEnabled;
     private boolean echoCancellationEnabled;
     private boolean selfVoiceReductionEnabled;
     private boolean selfVoiceProfileEnabled;
@@ -93,6 +94,10 @@ public final class HearingEngine {
 
     public void setFarPickupEnabled(boolean enabled) {
         this.farPickupEnabled = enabled;
+    }
+
+    public void setLongRangePickupEnabled(boolean enabled) {
+        this.longRangePickupEnabled = enabled;
     }
 
     public void setEchoCancellationEnabled(boolean enabled) {
@@ -243,6 +248,7 @@ public final class HearingEngine {
             VoiceProcessor voiceProcessor = new VoiceProcessor(
                     sampleRate,
                     farPickupEnabled,
+                    longRangePickupEnabled,
                     selfVoiceProfileEnabled,
                     selfVoiceProfileZcr,
                     selfVoiceProfileDiffRatio,
@@ -259,7 +265,7 @@ public final class HearingEngine {
                     continue;
                 }
                 float level = processAndMeasure(buffer, read, gain,
-                        outputLimit, voiceEnhancementEnabled, farPickupEnabled,
+                        outputLimit, voiceEnhancementEnabled, farPickupEnabled, longRangePickupEnabled,
                         selfVoiceReductionEnabled, voiceProcessor, feedbackGuard);
                 if (feedbackProtectionEnabled && feedbackGuard.shouldReduceGain()
                         && gain > 2.0f) {
@@ -300,7 +306,7 @@ public final class HearingEngine {
     }
 
     private static float processAndMeasure(short[] buffer, int length, float gain, float outputLimit,
-            boolean enhanceVoice, boolean farPickup, boolean reduceSelfVoice,
+            boolean enhanceVoice, boolean farPickup, boolean longRangePickup, boolean reduceSelfVoice,
             VoiceProcessor voiceProcessor, FeedbackGuard feedbackGuard) {
         long sum = 0L;
         int peak = 0;
@@ -348,6 +354,21 @@ public final class HearingEngine {
                     }
                     absInput = Math.abs(input);
                 }
+                if (longRangePickup && absInput > 18.0f && absInput < 1450.0f) {
+                    float longRangeBoost;
+                    if (absInput < 180.0f) {
+                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled ? 1.95f : 2.25f;
+                    } else if (absInput < 680.0f) {
+                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled ? 1.58f : 1.82f;
+                    } else {
+                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled ? 1.22f : 1.35f;
+                    }
+                    if (highGainEchoControl) {
+                        longRangeBoost *= 0.78f;
+                    }
+                    input *= longRangeBoost;
+                    absInput = Math.abs(input);
+                }
                 float selfVoiceThreshold = profileMatched
                         ? (farPickup ? 980.0f : 760.0f)
                         : (farPickup ? FAR_SELF_VOICE_THRESHOLD : SELF_VOICE_THRESHOLD);
@@ -362,12 +383,13 @@ public final class HearingEngine {
                     input = softenNearLoudVoice(input, absInput, selfVoiceThreshold, ratio);
                     absInput = Math.abs(input);
                 }
-                if (highGainEchoControl && absInput < frameSignature.averageAbs * 0.82f) {
+                if (highGainEchoControl && !longRangePickup && absInput < frameSignature.averageAbs * 0.82f) {
                     input *= voiceProcessor.boneConductionNoiseControlEnabled ? 0.50f : 0.62f;
                     absInput = Math.abs(input);
                 }
-                if (absInput < (farPickup ? 45.0f : 90.0f)) {
-                    input *= 0.35f;
+                float quietGate = longRangePickup ? 22.0f : (farPickup ? 45.0f : 90.0f);
+                if (absInput < quietGate) {
+                    input *= longRangePickup ? 0.22f : 0.35f;
                 }
                 input *= selfTalkDuck;
             }
@@ -593,7 +615,7 @@ public final class HearingEngine {
         private float selfVoiceProfilePeakRatio;
         private boolean boneConductionNoiseControlEnabled;
 
-        VoiceProcessor(int sampleRate, boolean farPickup, boolean profileEnabled,
+        VoiceProcessor(int sampleRate, boolean farPickup, boolean longRangePickup, boolean profileEnabled,
                 float profileZcr, float profileDiffRatio, float profilePeakRatio,
                 boolean boneNoiseControl) {
             this.selfVoiceProfileEnabled = profileEnabled;

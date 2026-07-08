@@ -89,6 +89,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private Switch wiredAutoStartSwitch;
     private Switch voiceSwitch;
     private Switch farPickupSwitch;
+    private Switch longRangePickupSwitch;
     private Switch echoSwitch;
     private Switch selfVoiceSwitch;
     private Switch voiceProfileSwitch;
@@ -106,6 +107,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private boolean suppressSwitchCallback;
     private boolean voiceEnhancementEnabled = true;
     private boolean farPickupEnabled = true;
+    private boolean longRangePickupEnabled;
     private boolean echoCancellationEnabled;
     private boolean selfVoiceReductionEnabled;
     private boolean noiseSuppressionEnabled = true;
@@ -192,6 +194,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         super.onCreate(savedInstanceState);
         engine = new HearingEngine(this, this);
         applySelfVoiceProfileToEngine();
+        longRangePickupEnabled = AppSettings.longRangePickupEnabled(this);
+        engine.setLongRangePickupEnabled(longRangePickupEnabled);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         textToSpeech = new TextToSpeech(this, status -> {
@@ -357,7 +361,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 3.6\uff1a\u9aa8\u4f20\u5bfc\u672c\u4eba\u8bf4\u8bdd\u538b\u4f4e");
+        versionText.setText("\u7248\u672c 3.7\uff1a5\u7c73\u8fdc\u8ddd\u79bb\u6536\u58f0");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -616,6 +620,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 farPickupEnabled,
                 "\u60f3\u542c\u8fdc\u4e00\u70b9\u7684\u4eba\u8bf4\u8bdd\u5c31\u6253\u5f00\uff0c\u4f46\u6742\u97f3\u4e5f\u4f1a\u53d8\u591a\u3002",
                 this::setFarPickupEnabled);
+
+        longRangePickupSwitch = addSettingSwitch(
+                content,
+                "5\u7c73\u8fdc\u8ddd\u79bb\u6536\u58f0",
+                longRangePickupEnabled,
+                "\u60f3\u542c 5 \u7c73\u5de6\u53f3\u7684\u4eba\u8bf4\u8bdd\u5c31\u6253\u5f00\uff1a\u4f1a\u66f4\u7528\u529b\u6536\u5c0f\u58f0\u97f3\uff0c\u4f46\u73af\u5883\u6742\u97f3\u4e5f\u53ef\u80fd\u66f4\u591a\u3002",
+                this::setLongRangePickupEnabled);
 
         echoSwitch = addSettingSwitch(
                 content,
@@ -1388,6 +1399,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSwitchChecked(farPickupSwitch, enabled);
     }
 
+    private void setLongRangePickupEnabled(boolean enabled) {
+        longRangePickupEnabled = enabled;
+        engine.setLongRangePickupEnabled(enabled);
+        AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_LONG_RANGE_PICKUP, enabled).apply();
+        setSwitchChecked(longRangePickupSwitch, enabled);
+    }
+
     private void setEchoCancellationEnabled(boolean enabled) {
         echoCancellationEnabled = enabled;
         engine.setEchoCancellationEnabled(enabled);
@@ -1541,6 +1559,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setBoneNoiseControlEnabled(false);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
+        setLongRangePickupEnabled(false);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(true);
         setNoiseSuppressionEnabled(true);
@@ -1570,6 +1589,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setBoneNoiseControlEnabled(false);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
+        setLongRangePickupEnabled(false);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(true);
         setNoiseSuppressionEnabled(true);
@@ -1598,6 +1618,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setBoneNoiseControlEnabled(false);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
+        setLongRangePickupEnabled(false);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(AppSettings.selfVoiceProfileEnabled(this)
                 && AppSettings.hasSelfVoiceProfile(this));
@@ -1619,6 +1640,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setBoneNoiseControlEnabled(false);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
+        setLongRangePickupEnabled(false);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
@@ -1637,6 +1659,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setBoneNoiseControlEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
+        setLongRangePickupEnabled(true);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(true);
         setNoiseSuppressionEnabled(true);
@@ -1656,6 +1679,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setBoneNoiseControlEnabled(false);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
+        setLongRangePickupEnabled(true);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
