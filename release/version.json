@@ -1,0 +1,6 @@
+{
+  "versionCode": 2,
+  "versionName": "1.1",
+  "apkUrl": "https://example.com/hearing-aid/app-release.apk",
+  "notes": "优化蓝牙耳机助听稳定性、人声清晰度和音量同步。"
+}
