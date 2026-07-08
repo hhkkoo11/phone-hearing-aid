@@ -357,7 +357,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 3.2\uff1a\u9aa8\u4f20\u5bfc\u964d\u566a\u6e05\u6670\u7248");
+        versionText.setText("\u7248\u672c 3.3\uff1a\u9aa8\u4f20\u5bfc\u6e05\u6670\u9632\u7a7a\u95f4\u97f3\u6548");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);

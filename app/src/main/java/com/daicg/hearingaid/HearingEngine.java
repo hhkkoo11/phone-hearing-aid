@@ -16,6 +16,7 @@ import android.media.MediaRecorder;
 import android.media.audiofx.AcousticEchoCanceler;
 import android.media.audiofx.AutomaticGainControl;
 import android.media.audiofx.NoiseSuppressor;
+import android.os.Build;
 import android.os.Process;
 
 public final class HearingEngine {
@@ -188,12 +189,7 @@ public final class HearingEngine {
                     .build();
 
             track = new AudioTrack.Builder()
-                    .setAudioAttributes(new AudioAttributes.Builder()
-                            .setUsage(bluetoothRoute
-                                    ? AudioAttributes.USAGE_MEDIA
-                                    : AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                            .build())
+                    .setAudioAttributes(buildOutputAttributes())
                     .setAudioFormat(new AudioFormat.Builder()
                             .setSampleRate(sampleRate)
                             .setEncoding(ENCODING)
@@ -405,6 +401,16 @@ public final class HearingEngine {
             track.setBufferSizeInFrames(targetFrames);
         } catch (IllegalStateException ignored) {
         }
+    }
+
+    private static AudioAttributes buildOutputAttributes() {
+        AudioAttributes.Builder builder = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH);
+        if (Build.VERSION.SDK_INT >= 32) {
+            builder.setSpatializationBehavior(AudioAttributes.SPATIALIZATION_BEHAVIOR_NEVER);
+        }
+        return builder.build();
     }
 
     private void postError(String message) {
