@@ -13,6 +13,7 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.media.audiofx.AcousticEchoCanceler;
 import android.media.audiofx.AutomaticGainControl;
 import android.media.audiofx.NoiseSuppressor;
 import android.os.Process;
@@ -30,8 +31,11 @@ public final class HearingEngine {
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     private static final int WIRED_SAMPLE_RATE = 48000;
     private static final int BLUETOOTH_SAMPLE_RATE = 44100;
-    private static final int WIRED_FRAME_BUFFER = 192;
-    private static final int BLUETOOTH_FRAME_BUFFER = 256;
+    private static final int WIRED_FRAME_BUFFER = 96;
+    private static final int BLUETOOTH_FRAME_BUFFER = 192;
+    private static final float SELF_VOICE_THRESHOLD = 1300.0f;
+    private static final float FAR_SELF_VOICE_THRESHOLD = 1750.0f;
+    private static final float SELF_VOICE_COMPRESS_RATIO = 0.28f;
 
     private final Context context;
     private final AudioManager audioManager;
@@ -46,6 +50,8 @@ public final class HearingEngine {
     private boolean automaticGainEnabled;
     private boolean voiceEnhancementEnabled = true;
     private boolean farPickupEnabled = true;
+    private boolean echoCancellationEnabled;
+    private boolean selfVoiceReductionEnabled;
     private boolean feedbackProtectionEnabled = true;
 
     public HearingEngine(Context context, Listener listener) {
@@ -81,6 +87,14 @@ public final class HearingEngine {
 
     public void setFarPickupEnabled(boolean enabled) {
         this.farPickupEnabled = enabled;
+    }
+
+    public void setEchoCancellationEnabled(boolean enabled) {
+        this.echoCancellationEnabled = enabled;
+    }
+
+    public void setSelfVoiceReductionEnabled(boolean enabled) {
+        this.selfVoiceReductionEnabled = enabled;
     }
 
     public void setFeedbackProtectionEnabled(boolean enabled) {
@@ -142,14 +156,13 @@ public final class HearingEngine {
 
         AudioRecord record = null;
         AudioTrack track = null;
+        AcousticEchoCanceler echoCanceler = null;
         NoiseSuppressor noiseSuppressor = null;
         AutomaticGainControl automaticGain = null;
 
         try {
             record = new AudioRecord.Builder()
-                    .setAudioSource(farPickupEnabled
-                            ? MediaRecorder.AudioSource.MIC
-                            : MediaRecorder.AudioSource.VOICE_RECOGNITION)
+                    .setAudioSource(selectAudioSource())
                     .setAudioFormat(new AudioFormat.Builder()
                             .setSampleRate(sampleRate)
                             .setEncoding(ENCODING)
@@ -182,12 +195,25 @@ public final class HearingEngine {
                 return;
             }
 
+            AudioDeviceInfo preferredInput = findPreferredInputDevice();
+            if (preferredInput != null) {
+                record.setPreferredDevice(preferredInput);
+            }
+
+            trimPlaybackBuffer(track, frameBuffer, bluetoothRoute);
+
             AudioDeviceInfo preferredOutput = findPreferredOutputDevice();
             if (preferredOutput != null) {
                 track.setPreferredDevice(preferredOutput);
             }
 
             int sessionId = record.getAudioSessionId();
+            if (echoCancellationEnabled && AcousticEchoCanceler.isAvailable()) {
+                echoCanceler = AcousticEchoCanceler.create(sessionId);
+                if (echoCanceler != null) {
+                    echoCanceler.setEnabled(true);
+                }
+            }
             if (noiseSuppressionEnabled && NoiseSuppressor.isAvailable()) {
                 noiseSuppressor = NoiseSuppressor.create(sessionId);
                 if (noiseSuppressor != null) {
@@ -202,7 +228,7 @@ public final class HearingEngine {
             }
 
             short[] buffer = new short[frameBuffer];
-            VoiceProcessor voiceProcessor = new VoiceProcessor();
+            VoiceProcessor voiceProcessor = new VoiceProcessor(sampleRate, farPickupEnabled);
             FeedbackGuard feedbackGuard = new FeedbackGuard();
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
@@ -215,7 +241,7 @@ public final class HearingEngine {
                 }
                 float level = processAndMeasure(buffer, read, gain,
                         outputLimit, voiceEnhancementEnabled, farPickupEnabled,
-                        voiceProcessor, feedbackGuard);
+                        selfVoiceReductionEnabled, voiceProcessor, feedbackGuard);
                 if (feedbackProtectionEnabled && feedbackGuard.shouldReduceGain()
                         && gain > 2.0f) {
                     gain = Math.max(2.0f, gain * 0.86f);
@@ -235,6 +261,7 @@ public final class HearingEngine {
         } finally {
             releaseEffect(automaticGain);
             releaseEffect(noiseSuppressor);
+            releaseEffect(echoCanceler);
             if (record != null) {
                 try {
                     record.stop();
@@ -254,8 +281,8 @@ public final class HearingEngine {
     }
 
     private static float processAndMeasure(short[] buffer, int length, float gain, float outputLimit,
-            boolean enhanceVoice, boolean farPickup, VoiceProcessor voiceProcessor,
-            FeedbackGuard feedbackGuard) {
+            boolean enhanceVoice, boolean farPickup, boolean reduceSelfVoice,
+            VoiceProcessor voiceProcessor, FeedbackGuard feedbackGuard) {
         long sum = 0L;
         int peak = 0;
         int limit = Math.round(Short.MAX_VALUE * outputLimit);
@@ -267,6 +294,13 @@ public final class HearingEngine {
                 float absInput = Math.abs(input);
                 if (farPickup && absInput > 45.0f && absInput < 2200.0f) {
                     input *= 1.45f;
+                }
+                float selfVoiceThreshold = farPickup
+                        ? FAR_SELF_VOICE_THRESHOLD
+                        : SELF_VOICE_THRESHOLD;
+                if (reduceSelfVoice && absInput > selfVoiceThreshold) {
+                    input = softenNearLoudVoice(input, absInput, selfVoiceThreshold);
+                    absInput = Math.abs(input);
                 }
                 if (absInput < (farPickup ? 45.0f : 90.0f)) {
                     input *= 0.35f;
@@ -291,6 +325,12 @@ public final class HearingEngine {
         return level;
     }
 
+    private static float softenNearLoudVoice(float input, float absInput, float threshold) {
+        float sign = input < 0.0f ? -1.0f : 1.0f;
+        float softened = threshold + ((absInput - threshold) * SELF_VOICE_COMPRESS_RATIO);
+        return sign * softened;
+    }
+
     private static int compressAndLimit(int sample, int limit) {
         int sign = sample < 0 ? -1 : 1;
         int abs = Math.abs(sample);
@@ -304,8 +344,25 @@ public final class HearingEngine {
         return sign * abs;
     }
 
+    private static void trimPlaybackBuffer(AudioTrack track, int frameBuffer, boolean bluetoothRoute) {
+        int targetFrames = bluetoothRoute ? frameBuffer * 3 : frameBuffer * 2;
+        try {
+            track.setBufferSizeInFrames(targetFrames);
+        } catch (IllegalStateException ignored) {
+        }
+    }
+
     private void postError(String message) {
         listener.onError(message);
+    }
+
+    private int selectAudioSource() {
+        if (echoCancellationEnabled) {
+            return MediaRecorder.AudioSource.VOICE_COMMUNICATION;
+        }
+        return farPickupEnabled
+                ? MediaRecorder.AudioSource.MIC
+                : MediaRecorder.AudioSource.VOICE_RECOGNITION;
     }
 
     private static void releaseEffect(android.media.audiofx.AudioEffect effect) {
@@ -365,6 +422,20 @@ public final class HearingEngine {
         return bluetooth;
     }
 
+    private AudioDeviceInfo findPreferredInputDevice() {
+        AudioDeviceInfo fallbackMic = null;
+        for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)) {
+            int type = device.getType();
+            if (type == AudioDeviceInfo.TYPE_BUILTIN_MIC) {
+                return device;
+            }
+            if (fallbackMic == null && isPhoneMicrophone(type)) {
+                fallbackMic = device;
+            }
+        }
+        return fallbackMic;
+    }
+
     @SuppressLint("MissingPermission")
     public boolean hasConnectedBluetoothAudioProfile() {
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
@@ -407,6 +478,12 @@ public final class HearingEngine {
                 || type == AudioDeviceInfo.TYPE_BLE_SPEAKER;
     }
 
+    private static boolean isPhoneMicrophone(int type) {
+        return type == AudioDeviceInfo.TYPE_BUILTIN_MIC
+                || type == AudioDeviceInfo.TYPE_TELEPHONY
+                || type == AudioDeviceInfo.TYPE_FM_TUNER;
+    }
+
     private static final class VoiceProcessor {
         private static final float HIGH_PASS_ALPHA = 0.97f;
 
@@ -414,6 +491,9 @@ public final class HearingEngine {
         private float previousOutput;
         private float previousPresenceInput;
         private float smoothedPresence;
+
+        VoiceProcessor(int sampleRate, boolean farPickup) {
+        }
 
         float highPass(float input) {
             float output = HIGH_PASS_ALPHA * (previousOutput + input - previousInput);

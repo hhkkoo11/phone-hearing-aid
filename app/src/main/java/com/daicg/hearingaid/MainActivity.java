@@ -8,11 +8,13 @@ import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothHeadset;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.hardware.usb.UsbManager;
@@ -28,6 +30,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.Voice;
@@ -48,6 +51,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -55,8 +60,13 @@ import java.util.Set;
 
 public final class MainActivity extends Activity implements HearingEngine.Listener {
     private static final int REQUEST_AUDIO_PERMISSIONS = 1001;
-    private static final String UPDATE_JSON_URL =
-            "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/version.json";
+    private static final int REQUEST_SETUP_PERMISSIONS = 1002;
+    private static final String OFFICIAL_REPOSITORY_URL =
+            "https://github.com/hhkkoo11/phone-hearing-aid";
+    private static final String[] UPDATE_JSON_URLS = {
+            "https://cdn.jsdelivr.net/gh/hhkkoo11/phone-hearing-aid@main/release/version.json",
+            "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/version.json"
+    };
     private static volatile boolean visible;
 
     private HearingEngine engine;
@@ -68,12 +78,15 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private TextView modeStatusText;
     private ProgressBar levelMeter;
     private Button toggleButton;
+    private Button pauseAutoButton;
     private SeekBar gainSeek;
     private Switch severeModeSwitch;
     private Switch pocketModeSwitch;
     private Switch wiredAutoStartSwitch;
     private Switch voiceSwitch;
     private Switch farPickupSwitch;
+    private Switch echoSwitch;
+    private Switch selfVoiceSwitch;
     private Switch noiseSwitch;
     private Switch agcSwitch;
     private Switch autoMonitorSwitch;
@@ -88,6 +101,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private boolean suppressSwitchCallback;
     private boolean voiceEnhancementEnabled = true;
     private boolean farPickupEnabled = true;
+    private boolean echoCancellationEnabled;
+    private boolean selfVoiceReductionEnabled;
     private boolean noiseSuppressionEnabled = true;
     private boolean automaticGainEnabled;
     private String activeAppliedMode;
@@ -122,9 +137,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 stopBecauseOutputWasRemoved();
             } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                 updateRouteStatus();
-                autoStartIfWiredAlreadyConnected();
+                autoStartIfHeadsetAlreadyConnected();
             } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 stopBecauseOutputWasRemoved();
+            } else if (BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED.equals(action)
+                    || BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED.equals(action)
+                    || BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
+                autoStartIfHeadsetAlreadyConnected();
             }
         }
     };
@@ -148,7 +167,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
             runOnUiThread(() -> {
                 updateRouteStatus();
-                autoStartIfWiredAlreadyConnected();
+                autoStartIfHeadsetAlreadyConnected();
             });
         }
 
@@ -182,7 +201,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 volumeObserver);
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, null);
         updateRouteStatus();
-        autoStartIfWiredAlreadyConnected();
+        autoStartIfHeadsetAlreadyConnected();
         mainHandler.post(volumeSyncPoller);
     }
 
@@ -201,6 +220,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             pendingInstallUri = null;
             installDownloadedApk(uri);
         }
+        mainHandler.postDelayed(this::autoCheckPermissionHealthIfNeeded, 700);
     }
 
     @Override
@@ -258,6 +278,12 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode != REQUEST_AUDIO_PERMISSIONS) {
+            if (requestCode == REQUEST_SETUP_PERMISSIONS) {
+                if (AppSettings.autoMonitorEnabled(this)) {
+                    HeadsetMonitorService.start(this);
+                }
+                toast("\u6388\u6743\u5df2\u5904\u7406\uff0c\u540e\u53f0\u76d1\u6d4b\u5df2\u5c3d\u91cf\u5f00\u542f");
+            }
             return;
         }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
@@ -325,7 +351,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 1.7\uff1a\u5df2\u4fee\u590d\u540e\u53f0\u76d1\u6d4b\u95ea\u9000");
+        versionText.setText("\u7248\u672c 2.7\uff1a\u4f18\u5148\u7528\u624b\u673a\u9ea6\u514b\u98ce");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -346,13 +372,23 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         toggleButton.setOnClickListener(v -> {
             if (engine.isRunning()) {
                 engine.stop();
+                setAutoListenPaused(true, false);
                 setRunningUi(false);
             } else {
+                setAutoListenPaused(false, false);
                 ensurePermissionsThenStart();
             }
         });
         root.addView(toggleButton, matchWidthFixedHeight(56));
         root.addView(makeHelpText("\u5f00\u59cb/\u505c\u6b62\uff1a\u628a\u624b\u673a\u6536\u5230\u7684\u58f0\u97f3\u9001\u5230\u8033\u673a\u91cc\u3002"), matchWidthWrapHeight());
+
+        pauseAutoButton = new Button(this);
+        pauseAutoButton.setTextSize(16);
+        pauseAutoButton.setAllCaps(false);
+        pauseAutoButton.setOnClickListener(v ->
+                setAutoListenPaused(!AppSettings.autoListenPaused(this), true));
+        root.addView(pauseAutoButton, matchWidthFixedHeight(48));
+        root.addView(makeHelpText("\u542c\u6b4c/\u5237\u89c6\u9891\u65f6\u70b9\u6682\u505c\uff0c\u8033\u673a\u5c31\u5f53\u666e\u901a\u8033\u673a\u7528\uff1b\u9700\u8981\u52a9\u542c\u65f6\u518d\u6062\u590d\u3002"), matchWidthWrapHeight());
 
         gainText = new TextView(this);
         gainText.setText("\u589e\u76ca 2.0x");
@@ -441,9 +477,11 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         scrollView.addView(root);
         setContentView(scrollView);
         applyAutoRouteMode(false);
+        updatePauseButton();
         if (AppSettings.autoMonitorEnabled(this)) {
             HeadsetMonitorService.start(this);
         }
+        mainHandler.postDelayed(this::showOneTimeSetupHintIfNeeded, 900);
     }
 
     private Switch makeSwitch(String text, boolean checked) {
@@ -557,17 +595,31 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 "\u60f3\u542c\u8fdc\u4e00\u70b9\u7684\u4eba\u8bf4\u8bdd\u5c31\u6253\u5f00\uff0c\u4f46\u6742\u97f3\u4e5f\u4f1a\u53d8\u591a\u3002",
                 this::setFarPickupEnabled);
 
+        echoSwitch = addSettingSwitch(
+                content,
+                "\u51cf\u5c11\u56de\u58f0",
+                echoCancellationEnabled,
+                "\u9ed8\u8ba4\u5173\u95ed\uff0c\u6536\u97f3\u66f4\u81ea\u7136\u3002\u5982\u679c\u542c\u5230\u660e\u663e\u56de\u58f0\u6216\u8033\u673a\u6f0f\u97f3\uff0c\u518d\u6253\u5f00\u5b83\u3002",
+                this::setEchoCancellationEnabled);
+
+        selfVoiceSwitch = addSettingSwitch(
+                content,
+                "\u964d\u4f4e\u81ea\u5df1\u58f0\u97f3",
+                selfVoiceReductionEnabled,
+                "\u84dd\u7259\u6a21\u5f0f\u9ed8\u8ba4\u6253\u5f00\uff1a\u538b\u4f4e\u4f7f\u7528\u8005\u81ea\u5df1\u8bf4\u8bdd\u7684\u6162\u56de\u58f0\uff0c\u522b\u4eba\u8d34\u8fd1\u624b\u673a\u8bf4\u8bdd\u4e5f\u53ef\u80fd\u4f1a\u5c0f\u4e00\u70b9\u3002",
+                this::setSelfVoiceReductionEnabled);
+
         wiredAutoStartSwitch = addSettingSwitch(
                 content,
-                "\u6709\u7ebf\u8033\u673a\u63d2\u5165\u81ea\u52a8\u5f00\u542f",
+                "\u8033\u673a\u8fde\u63a5\u81ea\u52a8\u5f00\u542f",
                 isWiredAutoStartEnabled(),
-                "\u68c0\u6d4b\u5230\u6807\u51c6\u6709\u7ebf\u6216 USB \u97f3\u9891\u8f93\u51fa\u65f6\u81ea\u52a8\u5f00\u59cb\u52a9\u542c\u3002",
+                "\u68c0\u6d4b\u5230\u6709\u7ebf/USB \u6216\u84dd\u7259\u8033\u673a\u65f6\u81ea\u52a8\u5f00\u59cb\u52a9\u542c\uff1b\u6709\u7ebf\u4f18\u5148\uff0c\u6ca1\u6709\u6709\u7ebf\u624d\u7528\u84dd\u7259\u3002",
                 isChecked -> {
                     AppSettings.prefs(this).edit()
                             .putBoolean(AppSettings.KEY_WIRED_AUTO_START, isChecked)
                             .apply();
                     if (isChecked) {
-                        autoStartIfWiredAlreadyConnected();
+                        autoStartIfHeadsetAlreadyConnected();
                     }
                 });
 
@@ -599,6 +651,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                         HearingAidService.stop(this);
                     }
                 });
+
+        addSettingSwitch(
+                content,
+                "\u6682\u505c\u81ea\u52a8\u52a9\u542c",
+                AppSettings.autoListenPaused(this),
+                "\u542c\u6b4c\u3001\u5237\u89c6\u9891\u3001\u60f3\u5f53\u666e\u901a\u8033\u673a\u7528\u65f6\u6253\u5f00\u3002\u6062\u590d\u540e\uff0c\u68c0\u6d4b\u5230\u8033\u673a\u5c31\u4f1a\u81ea\u52a8\u52a9\u542c\u3002",
+                isChecked -> setAutoListenPaused(isChecked, true));
 
         loudWarningSwitch = addSettingSwitch(
                 content,
@@ -636,6 +695,21 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         hearingTestButton.setOnClickListener(v -> showHearingTestDialog());
         content.addView(hearingTestButton, matchWidthFixedHeight(48));
         content.addView(makeHelpText("\u64ad\u653e\u4e0d\u540c\u9891\u7387\u7684\u6d4b\u8bd5\u97f3\uff0c\u7528\u6765\u8bb0\u5f55\u54ea\u4e9b\u97f3\u66f4\u96be\u542c\u5230\u3002"), matchWidthWrapHeight());
+
+        Button setupButton = makeSettingsButton("\u4e00\u6b21\u6027\u6388\u6743\u4e0e\u540e\u53f0\u8bbe\u7f6e");
+        setupButton.setOnClickListener(v -> showBackgroundSetupDialog());
+        content.addView(setupButton, matchWidthFixedHeight(48));
+        content.addView(makeHelpText("\u91cd\u542f\u540e\u60f3\u81ea\u52a8\u76d1\u6d4b\u8033\u673a\uff0c\u8bf7\u5728\u8fd9\u91cc\u628a\u5fc5\u8981\u6743\u9650\u548c\u540e\u53f0\u8fd0\u884c\u8bbe\u597d\u3002"), matchWidthWrapHeight());
+
+        Button permissionCheckButton = makeSettingsButton("\u68c0\u67e5\u6743\u9650\u72b6\u6001");
+        permissionCheckButton.setOnClickListener(v -> showPermissionHealthDialog(false));
+        content.addView(permissionCheckButton, matchWidthFixedHeight(48));
+        content.addView(makeHelpText("\u68c0\u67e5\u9ea6\u514b\u98ce\u3001\u84dd\u7259\u3001\u901a\u77e5\u3001\u7701\u7535\u4e0d\u9650\u5236\u548c\u540e\u53f0\u76d1\u6d4b\u6709\u6ca1\u6709\u6253\u5f00\u3002"), matchWidthWrapHeight());
+
+        Button aboutButton = makeSettingsButton("\u5173\u4e8e\u4e0e\u514d\u8d39\u58f0\u660e");
+        aboutButton.setOnClickListener(v -> showAboutDialog());
+        content.addView(aboutButton, matchWidthFixedHeight(48));
+        content.addView(makeHelpText("\u663e\u793a\u5b98\u65b9\u4ed3\u5e93\u3001\u514d\u8d39\u58f0\u660e\u548c\u5b89\u88c5\u5305\u7b7e\u540d\uff0c\u9632\u6b62\u88ab\u5192\u5145\u6536\u8d39\u3002"), matchWidthWrapHeight());
 
         Button updateButton = makeSettingsButton("\u68c0\u67e5\u66f4\u65b0");
         updateButton.setOnClickListener(v -> checkForUpdate());
@@ -675,6 +749,134 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         return button;
     }
 
+    private void showOneTimeSetupHintIfNeeded() {
+        if (AppSettings.prefs(this).getBoolean(AppSettings.KEY_SETUP_HINT_SHOWN, false)) {
+            return;
+        }
+        AppSettings.prefs(this).edit()
+                .putBoolean(AppSettings.KEY_SETUP_HINT_SHOWN, true)
+                .apply();
+        if (collectMissingRuntimePermissions().isEmpty()) {
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("\u5148\u505a\u4e00\u6b21\u6388\u6743")
+                .setMessage("\u4e3a\u4e86\u91cd\u542f\u540e\u66f4\u5bb9\u6613\u81ea\u52a8\u76d1\u6d4b\u8033\u673a\uff0c\u9700\u8981\u5148\u5141\u8bb8\u9ea6\u514b\u98ce\u3001\u84dd\u7259\u548c\u901a\u77e5\u6743\u9650\u3002\n\n\u8fd9\u4e9b\u6743\u9650\u53ea\u7528\u4e8e\u672c\u5730\u6536\u97f3\u548c\u8033\u673a\u76d1\u6d4b\uff0c\u4e0d\u4e0a\u4f20\u58f0\u97f3\u3002")
+                .setNegativeButton("\u4ee5\u540e\u518d\u8bf4", null)
+                .setPositiveButton("\u53bb\u6388\u6743", (dialog, which) -> requestSetupPermissions())
+                .show();
+    }
+
+    private void showBackgroundSetupDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("\u6388\u6743\u4e0e\u540e\u53f0\u8bbe\u7f6e")
+                .setMessage("\u80fd\u81ea\u52a8\u6253\u5f00\u7684\u6743\u9650\uff0cApp \u4f1a\u76f4\u63a5\u7533\u8bf7\u3002\n\n\u4f46\u201c\u81ea\u542f\u52a8\u201d\u548c\u201c\u7701\u7535\u4e0d\u9650\u5236\u201d\u662f\u624b\u673a\u7cfb\u7edf\u7ba1\u7684\uff0cApp \u4e0d\u80fd\u81ea\u5df1\u5077\u5077\u6253\u5f00\u3002\u5982\u679c\u91cd\u542f\u540e\u4e0d\u81ea\u52a8\u76d1\u6d4b\uff0c\u8bf7\u70b9\u4e0b\u9762\u6309\u94ae\uff0c\u5728\u7cfb\u7edf\u91cc\u5141\u8bb8\u672c App \u81ea\u542f\u52a8\u548c\u540e\u53f0\u8fd0\u884c\u3002")
+                .setNegativeButton("\u5173\u95ed", null)
+                .setNeutralButton("\u5148\u7533\u8bf7\u6743\u9650", (dialog, which) -> requestSetupPermissions())
+                .setPositiveButton("\u6253\u5f00\u7cfb\u7edf\u8bbe\u7f6e", (dialog, which) -> openBackgroundSettings())
+                .show();
+    }
+
+    private void autoCheckPermissionHealthIfNeeded() {
+        if (engine == null || engine.isRunning()) {
+            return;
+        }
+        List<String> issues = collectPermissionHealthIssues(true);
+        if (issues.isEmpty()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long lastPromptAt = AppSettings.prefs(this)
+                .getLong(AppSettings.KEY_LAST_PERMISSION_CHECK_PROMPT_AT, 0L);
+        if (now - lastPromptAt < 6L * 60L * 60L * 1000L) {
+            return;
+        }
+        AppSettings.prefs(this).edit()
+                .putLong(AppSettings.KEY_LAST_PERMISSION_CHECK_PROMPT_AT, now)
+                .apply();
+        showPermissionHealthDialog(true);
+    }
+
+    private void showPermissionHealthDialog(boolean automatic) {
+        List<String> issues = collectPermissionHealthIssues(false);
+        if (issues.isEmpty()) {
+            toast("\u6743\u9650\u72b6\u6001\u6b63\u5e38");
+            return;
+        }
+        StringBuilder message = new StringBuilder();
+        message.append("\u53d1\u73b0\u4ee5\u4e0b\u8bbe\u7f6e\u53ef\u80fd\u4f1a\u5f71\u54cd\u81ea\u52a8\u52a9\u542c\uff1a\n\n");
+        for (String issue : issues) {
+            message.append("\u2022 ").append(issue).append('\n');
+        }
+        message.append("\n\u70b9\u201c\u53bb\u5904\u7406\u201d\u540e\uff0cApp \u80fd\u7533\u8bf7\u7684\u6743\u9650\u4f1a\u76f4\u63a5\u7533\u8bf7\uff1b\u7cfb\u7edf\u4e0d\u5141\u8bb8\u81ea\u52a8\u6253\u5f00\u7684\u8bbe\u7f6e\uff0c\u4f1a\u5e26\u4f60\u53bb\u7cfb\u7edf\u9875\u9762\u624b\u52a8\u786e\u8ba4\u3002");
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle(automatic ? "\u6743\u9650\u4f53\u68c0\u63d0\u9192" : "\u6743\u9650\u72b6\u6001")
+                .setMessage(message.toString())
+                .setNegativeButton("\u4ee5\u540e\u518d\u8bf4", null)
+                .setPositiveButton("\u53bb\u5904\u7406", (dialog, which) -> {
+                    if (!collectMissingRuntimePermissions().isEmpty()) {
+                        requestSetupPermissions();
+                    } else {
+                        openBackgroundSettings();
+                    }
+                });
+        if (!automatic) {
+            builder.setNeutralButton("\u6253\u5f00\u540e\u53f0\u8bbe\u7f6e", (dialog, which) -> openBackgroundSettings());
+        }
+        builder.show();
+    }
+
+    private List<String> collectPermissionHealthIssues(boolean automaticOnly) {
+        List<String> issues = new ArrayList<>();
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            issues.add("\u9ea6\u514b\u98ce\u6743\u9650\u6ca1\u5f00\uff1a\u6ca1\u6709\u5b83\u5c31\u4e0d\u80fd\u6536\u58f0\u3002");
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED) {
+            issues.add("\u84dd\u7259\u6743\u9650\u6ca1\u5f00\uff1a\u53ef\u80fd\u68c0\u6d4b\u4e0d\u5230\u84dd\u7259\u8033\u673a\u3002");
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            issues.add("\u901a\u77e5\u6743\u9650\u6ca1\u5f00\uff1a\u540e\u53f0\u76d1\u6d4b\u53ef\u80fd\u4e0d\u7a33\u3002");
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (powerManager != null
+                    && !powerManager.isIgnoringBatteryOptimizations(getPackageName())) {
+                issues.add("\u7701\u7535\u4f18\u5316\u8fd8\u5728\u9650\u5236\uff1a\u606f\u5c4f\u6216\u91cd\u542f\u540e\u53ef\u80fd\u88ab\u7cfb\u7edf\u5173\u6389\u3002");
+            }
+        }
+        if (!AppSettings.autoMonitorEnabled(this)) {
+            issues.add("\u540e\u53f0\u81ea\u52a8\u76d1\u6d4b\u8033\u673a\u5df2\u5173\u95ed\uff1a\u63d2\u4e0a\u8033\u673a\u4e0d\u4f1a\u81ea\u52a8\u7b49\u5f85\u5f00\u542f\u3002");
+        }
+        if (AppSettings.autoListenPaused(this)) {
+            issues.add("\u81ea\u52a8\u52a9\u542c\u5904\u4e8e\u6682\u505c\u72b6\u6001\uff1a\u9002\u5408\u542c\u6b4c\u5237\u89c6\u9891\uff0c\u4f46\u4e0d\u4f1a\u81ea\u52a8\u5f00\u542f\u52a9\u542c\u3002");
+        }
+        if (!automaticOnly) {
+            issues.add("\u8bf7\u786e\u8ba4\u7cfb\u7edf\u91cc\u5141\u8bb8\u201c\u81ea\u542f\u52a8\u201d\u6216\u201c\u540e\u53f0\u8fd0\u884c\u201d\uff1a\u8fd9\u4e2a\u5f00\u5173\u666e\u901a App \u4e0d\u80fd\u76f4\u63a5\u8bfb\u53d6\uff0c\u9700\u8981\u4eba\u624b\u52a8\u786e\u8ba4\u4e00\u6b21\u3002");
+        }
+        return issues;
+    }
+
+    private void showAboutDialog() {
+        String sourceWarning = getPackageName().equals("com.daicg.hearingaid")
+                ? "\u5305\u540d\uff1a\u5b98\u65b9\u5305\u540d"
+                : "\u5305\u540d\uff1a\u975e\u5b98\u65b9\u5305\u540d\uff0c\u53ef\u80fd\u662f\u4e8c\u6b21\u5305\u88c5\u7248\u672c";
+        new AlertDialog.Builder(this)
+                .setTitle("\u5173\u4e8e\u4e0e\u514d\u8d39\u58f0\u660e")
+                .setMessage("\u624b\u673a\u52a9\u542c\u5668\u662f\u516c\u76ca\u9879\u76ee\uff0c\u8f6f\u4ef6\u6c38\u4e45\u514d\u8d39\u3002\n\n"
+                        + "\u7981\u6b62\u4efb\u4f55\u4eba\u628a\u672c App \u7528\u4e8e\u6536\u8d39\u9500\u552e\u3001\u4ed8\u8d39\u5b89\u88c5\u3001\u5e7f\u544a\u53d8\u73b0\u3001\u786c\u4ef6\u6346\u7ed1\u9500\u552e\u3001\u95e8\u5e97/\u516c\u53f8\u5546\u4e1a\u670d\u52a1\u3001\u95ed\u6e90\u4e8c\u6b21\u5305\u88c5\u6216\u5192\u5145\u539f\u521b\u3002\n\n"
+                        + "\u5b98\u65b9\u4ed3\u5e93\uff1a\n" + OFFICIAL_REPOSITORY_URL + "\n\n"
+                        + sourceWarning + "\n"
+                        + "\u5f53\u524d\u7b7e\u540d\u6307\u7eb9\uff1a\n" + getSigningFingerprint())
+                .setNegativeButton("\u5173\u95ed", null)
+                .setPositiveButton("\u6253\u5f00\u5b98\u65b9\u4ed3\u5e93", (dialog, which) -> openOfficialRepository())
+                .show();
+    }
+
     private interface SettingChangeHandler {
         void onChanged(boolean isChecked);
     }
@@ -683,25 +885,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         toast("\u6b63\u5728\u68c0\u67e5\u66f4\u65b0");
         new Thread(() -> {
             try {
-                HttpURLConnection connection = (HttpURLConnection) new URL(UPDATE_JSON_URL).openConnection();
-                connection.setConnectTimeout(8000);
-                connection.setReadTimeout(8000);
-                connection.setRequestMethod("GET");
-                int responseCode = connection.getResponseCode();
-                if (responseCode < 200 || responseCode >= 300) {
-                    throw new IllegalStateException("HTTP " + responseCode);
-                }
-                StringBuilder body = new StringBuilder();
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(connection.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        body.append(line);
-                    }
-                } finally {
-                    connection.disconnect();
-                }
-                JSONObject json = new JSONObject(body.toString());
+                JSONObject json = new JSONObject(fetchUpdateJson());
                 int remoteCode = json.getInt("versionCode");
                 String remoteName = json.optString("versionName", String.valueOf(remoteCode));
                 String apkUrl = json.getString("apkUrl");
@@ -717,11 +901,45 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             } catch (Exception e) {
                 runOnUiThread(() -> new AlertDialog.Builder(this)
                         .setTitle("\u6682\u65f6\u65e0\u6cd5\u68c0\u67e5\u66f4\u65b0")
-                        .setMessage("\u5f53\u524d\u7248\u672c\u5df2\u5177\u5907 App \u5185\u66f4\u65b0\u80fd\u529b\uff0c\u4f46\u8fd8\u9700\u8981\u628a\u66f4\u65b0\u5730\u5740\u914d\u6210\u771f\u5b9e\u7684\u4e91\u7aef version.json\u3002\n\n\u5f53\u524d\u5730\u5740\uff1a" + UPDATE_JSON_URL)
+                        .setMessage("\u624b\u673a\u73b0\u5728\u8fde\u4e0d\u4e0a\u66f4\u65b0\u670d\u52a1\u5668\uff0c\u53ef\u80fd\u662f\u7f51\u7edc\u6216 GitHub/CDN \u8bbf\u95ee\u4e0d\u7a33\u5b9a\u3002\n\n\u53ef\u4ee5\u6362\u4e00\u4e2a Wi-Fi \u540e\u518d\u8bd5\uff0c\u6216\u4ece\u5b98\u65b9 GitHub Release \u9875\u9762\u76f4\u63a5\u4e0b\u8f7d\u5b89\u88c5\u5305\u3002\n\n\u5b98\u65b9\u4ed3\u5e93\uff1a\n" + OFFICIAL_REPOSITORY_URL)
                         .setPositiveButton("\u77e5\u9053\u4e86", null)
                         .show());
             }
         }, "UpdateCheck").start();
+    }
+
+    private String fetchUpdateJson() throws Exception {
+        Exception lastError = null;
+        for (String updateUrl : UPDATE_JSON_URLS) {
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) new URL(updateUrl).openConnection();
+                connection.setConnectTimeout(8000);
+                connection.setReadTimeout(8000);
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Cache-Control", "no-cache");
+                int responseCode = connection.getResponseCode();
+                if (responseCode < 200 || responseCode >= 300) {
+                    throw new IllegalStateException("HTTP " + responseCode);
+                }
+                StringBuilder body = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(connection.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        body.append(line);
+                    }
+                }
+                return body.toString();
+            } catch (Exception e) {
+                lastError = e;
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        }
+        throw lastError == null ? new IllegalStateException("Update check failed") : lastError;
     }
 
     private int getCurrentVersionCode() throws PackageManager.NameNotFoundException {
@@ -833,6 +1051,27 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void ensurePermissionsThenStart() {
+        List<String> permissions = collectMissingRuntimePermissions();
+        if (permissions.isEmpty()) {
+            startListening();
+        } else {
+            requestPermissions(permissions.toArray(new String[0]), REQUEST_AUDIO_PERMISSIONS);
+        }
+    }
+
+    private void requestSetupPermissions() {
+        List<String> permissions = collectMissingRuntimePermissions();
+        if (permissions.isEmpty()) {
+            if (AppSettings.autoMonitorEnabled(this)) {
+                HeadsetMonitorService.start(this);
+            }
+            toast("\u5fc5\u8981\u6743\u9650\u5df2\u7ecf\u5141\u8bb8");
+        } else {
+            requestPermissions(permissions.toArray(new String[0]), REQUEST_SETUP_PERMISSIONS);
+        }
+    }
+
+    private List<String> collectMissingRuntimePermissions() {
         List<String> permissions = new ArrayList<>();
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -848,10 +1087,85 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 != PackageManager.PERMISSION_GRANTED) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS);
         }
-        if (permissions.isEmpty()) {
-            startListening();
-        } else {
-            requestPermissions(permissions.toArray(new String[0]), REQUEST_AUDIO_PERMISSIONS);
+        return permissions;
+    }
+
+    private void openBackgroundSettings() {
+        if (requestIgnoreBatteryOptimizationsIfNeeded()) {
+            return;
+        }
+        Intent[] intents = {
+                new Intent("miui.intent.action.OP_AUTO_START"),
+                new Intent().setComponent(new ComponentName(
+                        "com.miui.securitycenter",
+                        "com.miui.permcenter.autostart.AutoStartManagementActivity")),
+                new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:" + getPackageName()))
+        };
+        for (Intent intent : intents) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                return;
+            } catch (Exception ignored) {
+            }
+        }
+        toast("\u65e0\u6cd5\u6253\u5f00\u7cfb\u7edf\u540e\u53f0\u8bbe\u7f6e");
+    }
+
+    private boolean requestIgnoreBatteryOptimizationsIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return false;
+        }
+        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (powerManager == null || powerManager.isIgnoringBatteryOptimizations(getPackageName())) {
+            return false;
+        }
+        try {
+            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            intent.setData(Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void openOfficialRepository() {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(OFFICIAL_REPOSITORY_URL)));
+        } catch (Exception e) {
+            toast("\u65e0\u6cd5\u6253\u5f00\u5b98\u65b9\u4ed3\u5e93");
+        }
+    }
+
+    private String getSigningFingerprint() {
+        try {
+            Signature[] signatures;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                PackageInfo info = getPackageManager().getPackageInfo(
+                        getPackageName(), PackageManager.GET_SIGNING_CERTIFICATES);
+                signatures = info.signingInfo.getApkContentsSigners();
+            } else {
+                PackageInfo info = getPackageManager().getPackageInfo(
+                        getPackageName(), PackageManager.GET_SIGNATURES);
+                signatures = info.signatures;
+            }
+            if (signatures == null || signatures.length == 0) {
+                return "\u672a\u8bfb\u53d6\u5230";
+            }
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(signatures[0].toByteArray());
+            StringBuilder builder = new StringBuilder();
+            for (byte value : hash) {
+                if (builder.length() > 0) {
+                    builder.append(':');
+                }
+                builder.append(String.format(Locale.US, "%02X", value));
+            }
+            return builder.toString();
+        } catch (PackageManager.NameNotFoundException | NoSuchAlgorithmException e) {
+            return "\u8bfb\u53d6\u5931\u8d25";
         }
     }
 
@@ -881,19 +1195,59 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 : AppSettings.voiceGuideEnabled(this);
     }
 
-    private void autoStartIfWiredAlreadyConnected() {
-        if (isWiredAutoStartEnabled()
-                && engine.hasWiredOutput() && !engine.isRunning()) {
+    private void setAutoListenPaused(boolean paused, boolean announce) {
+        AppSettings.prefs(this).edit()
+                .putBoolean(AppSettings.KEY_AUTO_LISTEN_PAUSED, paused)
+                .apply();
+        if (paused) {
+            if (engine.isRunning()) {
+                engine.stop();
+                setRunningUi(false);
+            }
+            HearingAidService.stop(this);
+            if (announce) {
+                toast("\u5df2\u6682\u505c\u81ea\u52a8\u52a9\u542c\uff0c\u73b0\u5728\u53ef\u4ee5\u5f53\u666e\u901a\u8033\u673a\u7528");
+                speak("\u5df2\u6682\u505c\u81ea\u52a8\u52a9\u542c");
+            }
+        } else {
+            if (AppSettings.autoMonitorEnabled(this)) {
+                HeadsetMonitorService.start(this);
+            }
+            if (announce) {
+                toast("\u5df2\u6062\u590d\u81ea\u52a8\u52a9\u542c");
+                speak("\u5df2\u6062\u590d\u81ea\u52a8\u52a9\u542c");
+            }
+            autoStartIfHeadsetAlreadyConnected();
+        }
+        updatePauseButton();
+        updateRouteStatus();
+    }
+
+    private void updatePauseButton() {
+        if (pauseAutoButton == null) {
+            return;
+        }
+        pauseAutoButton.setText(AppSettings.autoListenPaused(this)
+                ? "\u6062\u590d\u81ea\u52a8\u52a9\u542c"
+                : "\u6682\u505c\u81ea\u52a8\u52a9\u542c");
+    }
+
+    private void autoStartIfHeadsetAlreadyConnected() {
+        if (!AppSettings.autoListenPaused(this)
+                && isWiredAutoStartEnabled()
+                && (engine.hasWiredOutput() || engine.hasBluetoothOutput())
+                && !engine.isRunning()) {
             ensurePermissionsThenStart();
         }
     }
 
     private void handleWiredHeadsetState(int state) {
         if (state == 1) {
-            if (isWiredAutoStartEnabled()
+            if (!AppSettings.autoListenPaused(this)
+                    && isWiredAutoStartEnabled()
                     && !engine.isRunning()) {
                 toast("\u5df2\u68c0\u6d4b\u5230\u6709\u7ebf\u8033\u673a\uff0c\u81ea\u52a8\u5f00\u542f\u52a9\u542c");
-                ensurePermissionsThenStart();
+                autoStartIfHeadsetAlreadyConnected();
             }
         } else if (state == 0) {
             stopBecauseOutputWasRemoved();
@@ -988,6 +1342,18 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSwitchChecked(farPickupSwitch, enabled);
     }
 
+    private void setEchoCancellationEnabled(boolean enabled) {
+        echoCancellationEnabled = enabled;
+        engine.setEchoCancellationEnabled(enabled);
+        setSwitchChecked(echoSwitch, enabled);
+    }
+
+    private void setSelfVoiceReductionEnabled(boolean enabled) {
+        selfVoiceReductionEnabled = enabled;
+        engine.setSelfVoiceReductionEnabled(enabled);
+        setSwitchChecked(selfVoiceSwitch, enabled);
+    }
+
     private void setNoiseSuppressionEnabled(boolean enabled) {
         noiseSuppressionEnabled = enabled;
         engine.setNoiseSuppressionEnabled(enabled);
@@ -1006,6 +1372,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
+        setEchoCancellationEnabled(false);
+        setSelfVoiceReductionEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(2.5f);
@@ -1032,6 +1400,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
+        setEchoCancellationEnabled(false);
+        setSelfVoiceReductionEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(4.0f);
@@ -1057,6 +1427,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
+        setEchoCancellationEnabled(false);
+        setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(5.0f);
@@ -1074,6 +1446,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
+        setEchoCancellationEnabled(false);
+        setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(4.0f);
@@ -1089,6 +1463,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
+        setEchoCancellationEnabled(false);
+        setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(true);
         setGainProgressForValue(7.0f);
@@ -1104,8 +1480,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
         if (engine.hasWiredOutput()) {
             applyWiredIndoorMode(announce);
-        } else {
+        } else if (engine.hasBluetoothOutput()) {
             applyBluetoothDailyMode(announce);
+        } else {
+            updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         }
     }
 
@@ -1115,7 +1493,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
         setSwitchChecked(severeModeSwitch, AppSettings.MODE_SEVERE.equals(mode));
         setSwitchChecked(pocketModeSwitch, AppSettings.MODE_POCKET.equals(mode));
-        if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
+        if (AppSettings.autoListenPaused(this)) {
+            modeStatusText.setText("\u5df2\u6682\u505c\u81ea\u52a8\u52a9\u542c\uff1a\u666e\u901a\u8033\u673a\u6a21\u5f0f");
+        } else if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
             modeStatusText.setText("\u81ea\u52a8\u6a21\u5f0f\uff1a\u6709\u7ebf/USB \u8033\u673a");
         } else if (AppSettings.MODE_POCKET.equals(mode)) {
             modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u53e3\u888b\u6a21\u5f0f");

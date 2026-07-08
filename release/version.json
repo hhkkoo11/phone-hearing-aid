@@ -1,6 +1,6 @@
 {
-  "versionCode": 8,
-  "versionName": "1.7",
-  "apkUrl": "https://github.com/hhkkoo11/phone-hearing-aid/releases/latest/download/hearing-aid-app.apk",
-  "notes": "\u4fee\u590d\u90e8\u5206 Android 15/16 \u624b\u673a\u540e\u53f0\u8033\u673a\u76d1\u6d4b\u670d\u52a1\u542f\u52a8\u65f6\u95ea\u9000\u7684\u95ee\u9898\u3002"
+  "versionCode": 18,
+  "versionName": "2.7",
+  "apkUrl": "https://cdn.jsdelivr.net/gh/hhkkoo11/phone-hearing-aid@main/release/hearing-aid-app.apk",
+  "notes": "\u84dd\u7259\u8033\u673a\u4f7f\u7528\u65f6\u4f18\u5148\u4f7f\u7528\u624b\u673a\u5185\u7f6e\u9ea6\u514b\u98ce\u6536\u97f3\uff0c\u8033\u673a\u53ea\u8d1f\u8d23\u64ad\u653e\uff0c\u5c3d\u91cf\u907f\u514d\u8d70\u8033\u673a\u9ea6\u514b\u98ce\u5bfc\u81f4\u81ea\u5df1\u58f0\u97f3\u8fc7\u5927\u548c\u6162\u56de\u58f0\u3002"
 }

@@ -11,6 +11,9 @@ final class AppSettings {
     static final String KEY_VOICE_GUIDE = "voice_guide";
     static final String KEY_SCENE_MODE = "scene_mode";
     static final String KEY_WIRED_AUTO_START = "wired_auto_start";
+    static final String KEY_AUTO_LISTEN_PAUSED = "auto_listen_paused";
+    static final String KEY_SETUP_HINT_SHOWN = "setup_hint_shown";
+    static final String KEY_LAST_PERMISSION_CHECK_PROMPT_AT = "last_permission_check_prompt_at";
 
     static final String MODE_BLUETOOTH_DAILY = "bluetooth_daily";
     static final String MODE_WIRED_INDOOR = "wired_indoor";
@@ -42,6 +45,10 @@ final class AppSettings {
 
     static boolean wiredAutoStartEnabled(Context context) {
         return prefs(context).getBoolean(KEY_WIRED_AUTO_START, true);
+    }
+
+    static boolean autoListenPaused(Context context) {
+        return prefs(context).getBoolean(KEY_AUTO_LISTEN_PAUSED, false);
     }
 
     static String sceneMode(Context context) {

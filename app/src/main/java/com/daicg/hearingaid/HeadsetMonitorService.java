@@ -32,8 +32,8 @@ public final class HeadsetMonitorService extends Service {
 
         @Override
         public void onAudioDevicesRemoved(AudioDeviceInfo[] removedDevices) {
-            if (!new HearingEngine(HeadsetMonitorService.this, NoopListener.INSTANCE)
-                    .hasWiredOutput()) {
+            HearingEngine engine = new HearingEngine(HeadsetMonitorService.this, NoopListener.INSTANCE);
+            if (!engine.hasWiredOutput() && !engine.hasBluetoothOutput()) {
                 HearingAidService.stop(HeadsetMonitorService.this);
             }
         }
@@ -89,6 +89,10 @@ public final class HeadsetMonitorService extends Service {
     private void checkHeadsetAndStart() {
         if (!AppSettings.autoMonitorEnabled(this)) {
             stopSelf();
+            return;
+        }
+        if (AppSettings.autoListenPaused(this)) {
+            HearingAidService.stop(this);
             return;
         }
         HearingEngine engine = new HearingEngine(this, NoopListener.INSTANCE);
