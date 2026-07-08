@@ -4,12 +4,14 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.widget.Toast;
 
 public final class HearingAidService extends Service implements HearingEngine.Listener {
     private static volatile boolean active;
 
     private HearingEngine engine;
+    private PowerManager.WakeLock wakeLock;
 
     public static void start(Context context) {
         try {
@@ -37,6 +39,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             return;
         }
         active = true;
+        acquireWakeLock();
         engine = new HearingEngine(this, this);
         applySavedMode();
         engine.start();
@@ -61,6 +64,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         if (engine != null) {
             engine.stop();
         }
+        releaseWakeLock();
         super.onDestroy();
     }
 
@@ -177,5 +181,27 @@ public final class HearingAidService extends Service implements HearingEngine.Li
                 AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_ZCR, 0.0f),
                 AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_DIFF, 0.0f),
                 AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_PEAK, 0.0f));
+    }
+
+    private void acquireWakeLock() {
+        if (wakeLock != null && wakeLock.isHeld()) {
+            return;
+        }
+        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (powerManager == null) {
+            return;
+        }
+        wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "PhoneHearingAid:Listening");
+        wakeLock.setReferenceCounted(false);
+        wakeLock.acquire();
+    }
+
+    private void releaseWakeLock() {
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
+        wakeLock = null;
     }
 }

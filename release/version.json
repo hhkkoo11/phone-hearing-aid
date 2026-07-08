@@ -1,7 +1,7 @@
 {
-  "versionCode": 28,
-  "versionName": "3.7",
+  "versionCode": 29,
+  "versionName": "3.8",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "新增 5 米远距离收声：设置中增加 5 米远距离收声开关，骨传导和重度模式默认开启；会更用力放大远处的小声人声，同时继续压低极弱底噪和本人说话回声。请尽量把手机放在桌面、胸前或朝向说话人，口袋里无法稳定收 5 米。云更新不强制。"
+  "notes": "修复息屏后助听停止的问题：开始助听后统一交给前台服务运行，并增加轻量息屏保活锁，屏幕关闭后仍继续收音和输出到耳机。通知栏会显示助听运行中；如仍被系统杀掉，请在手机系统里允许本 App 后台运行/省电不限制。云更新不强制。"
 }

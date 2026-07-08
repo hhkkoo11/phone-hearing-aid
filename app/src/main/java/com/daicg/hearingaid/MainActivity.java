@@ -223,7 +223,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     protected void onResume() {
         super.onResume();
         visible = true;
-        HearingAidService.stop(this);
+        setRunningUi(isListeningActive());
         mainHandler.post(volumeSyncPoller);
         if (pendingInstallUri != null && canInstallUnknownApps()) {
             Uri uri = pendingInstallUri;
@@ -361,7 +361,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 3.7\uff1a5\u7c73\u8fdc\u8ddd\u79bb\u6536\u58f0");
+        versionText.setText("\u7248\u672c 3.8\uff1a\u606f\u5c4f\u7ee7\u7eed\u52a9\u542c");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -380,7 +380,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         toggleButton.setTextSize(18);
         toggleButton.setAllCaps(false);
         toggleButton.setOnClickListener(v -> {
-            if (engine.isRunning()) {
+            if (isListeningActive()) {
                 engine.stop();
                 setAutoListenPaused(true, false);
                 setRunningUi(false);
@@ -823,7 +823,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void autoCheckPermissionHealthIfNeeded() {
-        if (engine == null || engine.isRunning()) {
+        if (engine == null || isListeningActive()) {
             return;
         }
         List<String> issues = collectPermissionHealthIssues(true);
@@ -1216,10 +1216,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void startListening() {
-        HearingAidService.stop(this);
         updateRouteStatus();
         applyAutoRouteMode(false);
-        engine.start();
+        engine.stop();
+        HearingAidService.start(this);
         setRunningUi(true);
     }
 
@@ -1282,7 +1282,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         if (!AppSettings.autoListenPaused(this)
                 && isWiredAutoStartEnabled()
                 && (engine.hasWiredOutput() || engine.hasBluetoothOutput())
-                && !engine.isRunning()) {
+                && !isListeningActive()) {
             ensurePermissionsThenStart();
         }
     }
@@ -1291,7 +1291,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         if (state == 1) {
             if (!AppSettings.autoListenPaused(this)
                     && isWiredAutoStartEnabled()
-                    && !engine.isRunning()) {
+                    && !isListeningActive()) {
                 toast("\u5df2\u68c0\u6d4b\u5230\u6709\u7ebf\u8033\u673a\uff0c\u81ea\u52a8\u5f00\u542f\u52a9\u542c");
                 autoStartIfHeadsetAlreadyConnected();
             }
@@ -1301,12 +1301,17 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void stopBecauseOutputWasRemoved() {
-        if (engine.isRunning()) {
+        if (isListeningActive()) {
             engine.stop();
+            HearingAidService.stop(this);
             setRunningUi(false);
             levelMeter.setProgress(0);
             toast("\u8033\u673a\u5df2\u79fb\u9664\uff0c\u5df2\u505c\u6b62\u52a9\u542c");
         }
+    }
+
+    private boolean isListeningActive() {
+        return engine.isRunning() || HearingAidService.isActive();
     }
 
     private void setRunningUi(boolean running) {
@@ -1463,6 +1468,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
         if (engine.isRunning()) {
             engine.stop();
+            setRunningUi(false);
+        }
+        if (HearingAidService.isActive()) {
+            HearingAidService.stop(this);
             setRunningUi(false);
         }
         toast("\u5f00\u59cb\u5f55\u5236\uff0c\u8bf7\u8bf4\u8bdd 3 \u79d2");
