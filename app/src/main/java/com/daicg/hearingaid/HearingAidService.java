@@ -129,7 +129,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setNoiseSuppressionEnabled(true);
             engine.setAutomaticGainEnabled(true);
         } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
-            engine.setGain(20.0f);
+            engine.setGain(12.0f);
             engine.setOutputLimit(0.90f);
             engine.setBoneConductionNoiseControlEnabled(true);
             engine.setVoiceEnhancementEnabled(true);

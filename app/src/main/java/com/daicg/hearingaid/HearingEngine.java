@@ -304,7 +304,11 @@ public final class HearingEngine {
             VoiceProcessor voiceProcessor, FeedbackGuard feedbackGuard) {
         long sum = 0L;
         int peak = 0;
-        int limit = Math.round(Short.MAX_VALUE * outputLimit);
+        boolean highGainEchoControl = gain >= 8.0f;
+        float effectiveOutputLimit = highGainEchoControl
+                ? Math.min(outputLimit, gain >= 16.0f ? 0.74f : 0.80f)
+                : outputLimit;
+        int limit = Math.round(Short.MAX_VALUE * effectiveOutputLimit);
         VoiceSignature frameSignature = VoiceSignature.fromSamples(buffer, length);
         boolean profileMatched = voiceProcessor.selfVoiceProfileEnabled
                 && frameSignature.matches(
@@ -318,6 +322,9 @@ public final class HearingEngine {
             if (enhanceVoice) {
                 input = voiceProcessor.highPass(input);
                 input = voiceProcessor.voiceShape(input);
+                if (highGainEchoControl) {
+                    input = voiceProcessor.highGainDeEcho(input, gain);
+                }
                 float absInput = Math.abs(input);
                 if (voiceProcessor.boneConductionNoiseControlEnabled) {
                     if (absInput < 260.0f) {
@@ -331,14 +338,29 @@ public final class HearingEngine {
                     absInput = Math.abs(input);
                 }
                 if (farPickup && absInput > 45.0f && absInput < 2200.0f) {
-                    input *= voiceProcessor.boneConductionNoiseControlEnabled ? 1.12f : 1.45f;
+                    if (highGainEchoControl) {
+                        input *= voiceProcessor.boneConductionNoiseControlEnabled ? 1.02f : 1.14f;
+                    } else {
+                        input *= voiceProcessor.boneConductionNoiseControlEnabled ? 1.12f : 1.45f;
+                    }
+                    absInput = Math.abs(input);
                 }
                 float selfVoiceThreshold = profileMatched
                         ? (farPickup ? 980.0f : 760.0f)
                         : (farPickup ? FAR_SELF_VOICE_THRESHOLD : SELF_VOICE_THRESHOLD);
+                if (highGainEchoControl) {
+                    selfVoiceThreshold *= voiceProcessor.boneConductionNoiseControlEnabled ? 0.62f : 0.72f;
+                }
                 if (reduceSelfVoice && absInput > selfVoiceThreshold) {
                     float ratio = profileMatched ? 0.14f : SELF_VOICE_COMPRESS_RATIO;
+                    if (highGainEchoControl) {
+                        ratio *= voiceProcessor.boneConductionNoiseControlEnabled ? 0.55f : 0.70f;
+                    }
                     input = softenNearLoudVoice(input, absInput, selfVoiceThreshold, ratio);
+                    absInput = Math.abs(input);
+                }
+                if (highGainEchoControl && absInput < frameSignature.averageAbs * 0.82f) {
+                    input *= voiceProcessor.boneConductionNoiseControlEnabled ? 0.50f : 0.62f;
                     absInput = Math.abs(input);
                 }
                 if (absInput < (farPickup ? 45.0f : 90.0f)) {
@@ -352,7 +374,9 @@ public final class HearingEngine {
                 sample = Short.MIN_VALUE;
             }
             if (enhanceVoice) {
-                sample = compressAndLimit(sample, limit);
+                sample = highGainEchoControl
+                        ? compressAndLimit(sample, limit, 0.52f, 0.16f)
+                        : compressAndLimit(sample, limit);
             }
             buffer[i] = (short) sample;
             int absSample = Math.abs(sample);
@@ -383,11 +407,15 @@ public final class HearingEngine {
     }
 
     private static int compressAndLimit(int sample, int limit) {
+        return compressAndLimit(sample, limit, 0.70f, 0.25f);
+    }
+
+    private static int compressAndLimit(int sample, int limit, float kneeRatio, float overKneeRatio) {
         int sign = sample < 0 ? -1 : 1;
         int abs = Math.abs(sample);
-        int knee = Math.round(limit * 0.70f);
+        int knee = Math.round(limit * kneeRatio);
         if (abs > knee) {
-            abs = knee + Math.round((abs - knee) * 0.25f);
+            abs = knee + Math.round((abs - knee) * overKneeRatio);
         }
         if (abs > limit) {
             abs = limit;
@@ -552,6 +580,8 @@ public final class HearingEngine {
         private float previousOutput;
         private float previousPresenceInput;
         private float smoothedPresence;
+        private float roomTail;
+        private float highGainPrevious;
         private boolean selfVoiceProfileEnabled;
         private float selfVoiceProfileZcr;
         private float selfVoiceProfileDiffRatio;
@@ -580,6 +610,16 @@ public final class HearingEngine {
             previousPresenceInput = input;
             smoothedPresence = smoothedPresence * 0.72f + edge * 0.28f;
             return input + smoothedPresence * 0.32f;
+        }
+
+        float highGainDeEcho(float input, float gain) {
+            float tailAlpha = boneConductionNoiseControlEnabled ? 0.985f : 0.975f;
+            roomTail = roomTail * tailAlpha + input * (1.0f - tailAlpha);
+            float transientPart = input - roomTail * (boneConductionNoiseControlEnabled ? 0.58f : 0.42f);
+            float edge = transientPart - highGainPrevious;
+            highGainPrevious = transientPart;
+            float clarity = gain >= 16.0f ? 0.18f : 0.11f;
+            return transientPart + edge * clarity;
         }
     }
 

@@ -357,7 +357,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 3.3\uff1a\u9aa8\u4f20\u5bfc\u6e05\u6670\u9632\u7a7a\u95f4\u97f3\u6548");
+        versionText.setText("\u7248\u672c 3.4\uff1a\u9ad8\u589e\u76ca\u9632\u56de\u58f0\u6e05\u6670\u7248");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -1641,11 +1641,11 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSelfVoiceReductionEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(20.0f);
+        setGainProgressForValue(12.0f);
         setSystemMusicVolumeMax();
         updateModeFeedback(AppSettings.MODE_BONE_CONDUCTION);
         speak("\u9aa8\u4f20\u5bfc\u6a21\u5f0f");
-        toast("\u5df2\u5f00\u542f\u9aa8\u4f20\u5bfc\u6a21\u5f0f\uff0c\u97f3\u91cf\u5df2\u8c03\u5230\u6700\u5927");
+        toast("\u5df2\u5f00\u542f\u9aa8\u4f20\u5bfc\u6a21\u5f0f\uff0c\u9ed8\u8ba4 12 \u500d\u6e05\u6670\u6863");
     }
 
     private void applySevereMode() {
