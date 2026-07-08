@@ -68,12 +68,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private TextView modeStatusText;
     private ProgressBar levelMeter;
     private Button toggleButton;
-    private Button bluetoothModeButton;
-    private Button wiredModeButton;
-    private Button severeModeButton;
-    private Button pocketModeButton;
     private SeekBar gainSeek;
     private Switch severeModeSwitch;
+    private Switch pocketModeSwitch;
     private Switch wiredAutoStartSwitch;
     private Switch voiceSwitch;
     private Switch farPickupSwitch;
@@ -93,6 +90,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private boolean farPickupEnabled = true;
     private boolean noiseSuppressionEnabled = true;
     private boolean automaticGainEnabled;
+    private String activeAppliedMode;
+    private String lastSpokenText = "";
+    private long lastSpokenAtMillis;
 
     private final Runnable volumeSyncPoller = new Runnable() {
         @Override
@@ -274,14 +274,12 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                     && event.getRepeatCount() == 0
                     && event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP) {
                 adjustGainBy(1.0f);
-                speak("\u97f3\u91cf\u589e\u5927");
                 return true;
             }
             if (event.getAction() == KeyEvent.ACTION_DOWN
                     && event.getRepeatCount() == 0
                     && event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN) {
                 adjustGainBy(-1.0f);
-                speak("\u97f3\u91cf\u51cf\u5c0f");
                 return true;
             }
         }
@@ -319,7 +317,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 1.3\uff1a\u8bed\u97f3\u64ad\u62a5\u5df2\u4f18\u5316");
+        versionText.setText("\u7248\u672c 1.4\uff1a\u81ea\u52a8\u8bc6\u522b\u8033\u673a");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -393,38 +391,12 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(makeHelpText("+ / -\uff1a\u8c03\u5927\u6216\u8c03\u5c0f\u58f0\u97f3\uff0c\u6bcf\u6b21\u8c03\u4e00\u5c0f\u683c\u3002"), matchWidthWrapHeight());
 
         TextView modeLabel = new TextView(this);
-        modeLabel.setText("\u542c\u89c9\u6a21\u5f0f");
+        modeLabel.setText("\u81ea\u52a8\u6a21\u5f0f");
         modeLabel.setTextSize(16);
         modeLabel.setTextColor(0xFF10231F);
         modeLabel.setPadding(0, dp(16), 0, dp(8));
         root.addView(modeLabel, matchWidthWrapHeight());
-
-        LinearLayout modeButtons = new LinearLayout(this);
-        modeButtons.setOrientation(LinearLayout.HORIZONTAL);
-        modeButtons.setGravity(Gravity.CENTER);
-
-        bluetoothModeButton = makeModeButton("\u84dd\u7259\u65e5\u5e38");
-        bluetoothModeButton.setOnClickListener(v -> applyBluetoothDailyMode());
-        modeButtons.addView(bluetoothModeButton, weightedButtonParams());
-
-        wiredModeButton = makeModeButton("\u6709\u7ebf\u5ba4\u5185");
-        wiredModeButton.setOnClickListener(v -> applyWiredIndoorMode());
-        modeButtons.addView(wiredModeButton, weightedButtonParams());
-
-        severeModeButton = makeModeButton("\u91cd\u5ea6");
-        severeModeButton.setOnClickListener(v -> applySevereMode());
-        modeButtons.addView(severeModeButton, weightedButtonParams());
-
-        root.addView(modeButtons, matchWidthFixedHeight(56));
-        root.addView(makeHelpText("\u84dd\u7259\u65e5\u5e38\uff1a\u5916\u51fa\u548c\u5bb6\u91cc\u90fd\u80fd\u7528\u3002\u6709\u7ebf\u5ba4\u5185\uff1a\u5ba4\u5185\u5bf9\u8bdd\u66f4\u91cd\u4eba\u58f0\u3002\u91cd\u5ea6\uff1a\u66f4\u5927\u58f0\uff0c\u4f46\u6709\u9650\u5e45\u4fdd\u62a4\u3002"), matchWidthWrapHeight());
-
-        pocketModeButton = new Button(this);
-        pocketModeButton.setText("\u53e3\u888b\u6a21\u5f0f");
-        pocketModeButton.setTextSize(16);
-        pocketModeButton.setAllCaps(false);
-        pocketModeButton.setOnClickListener(v -> applyPocketMode());
-        root.addView(pocketModeButton, matchWidthFixedHeight(48));
-        root.addView(makeHelpText("\u53e3\u888b\u6a21\u5f0f\uff1a\u624b\u673a\u653e\u53e3\u888b\u65f6\u7528\uff0c\u5c3d\u91cf\u51cf\u5c11\u8863\u670d\u6469\u64e6\u58f0\u548c\u95f7\u58f0\u3002"), matchWidthWrapHeight());
+        root.addView(makeHelpText("\u81ea\u52a8\u8bc6\u522b\u8033\u673a\u7c7b\u578b\uff1a\u84dd\u7259\u8033\u673a\u7528\u65e5\u5e38\u4f18\u5316\uff0c\u6709\u7ebf/USB \u8033\u673a\u7528\u5ba4\u5185\u5bf9\u8bdd\u4f18\u5316\u3002"), matchWidthWrapHeight());
 
         Button maxButton = new Button(this);
         maxButton.setText("\u6700\u5927\u6863");
@@ -459,7 +431,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
         scrollView.addView(root);
         setContentView(scrollView);
-        applyBluetoothDailyMode();
+        applyAutoRouteMode(false);
         if (AppSettings.autoMonitorEnabled(this)) {
             HeadsetMonitorService.start(this);
         }
@@ -479,14 +451,6 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         Button button = new Button(this);
         button.setText(text);
         button.setTextSize(34);
-        button.setAllCaps(false);
-        return button;
-    }
-
-    private Button makeModeButton(String text) {
-        Button button = new Button(this);
-        button.setText(text);
-        button.setTextSize(16);
         button.setAllCaps(false);
         return button;
     }
@@ -516,7 +480,20 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                     if (isChecked) {
                         applySevereMode();
                     } else {
-                        applyBluetoothDailyMode();
+                        applyAutoRouteMode(true);
+                    }
+                });
+
+        pocketModeSwitch = addSettingSwitch(
+                content,
+                "\u53e3\u888b\u6a21\u5f0f",
+                AppSettings.MODE_POCKET.equals(AppSettings.sceneMode(this)),
+                "\u624b\u673a\u653e\u53e3\u888b\u65f6\u7528\uff1a\u5173\u6389\u8fdc\u8ddd\u79bb\u6536\u58f0\uff0c\u964d\u4f4e\u4e00\u70b9\u8f93\u51fa\u4e0a\u9650\uff0c\u5c3d\u91cf\u51cf\u5c11\u8863\u670d\u6469\u64e6\u58f0\u548c\u95f7\u58f0\u3002",
+                isChecked -> {
+                    if (isChecked) {
+                        applyPocketMode();
+                    } else {
+                        applyAutoRouteMode(true);
                     }
                 });
 
@@ -835,6 +812,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private void startListening() {
         HearingAidService.stop(this);
         updateRouteStatus();
+        applyAutoRouteMode(false);
         engine.start();
         setRunningUi(true);
     }
@@ -898,7 +876,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private void adjustGainBy(float delta) {
         float currentGain = 0.2f + gainSeek.getProgress() / 10.0f;
         setGainProgressForValue(currentGain + delta);
-        speak(delta > 0 ? "\u97f3\u91cf\u589e\u5927" : "\u97f3\u91cf\u51cf\u5c0f");
+        speakOncePerBurst(delta > 0 ? "\u589e\u5927" : "\u51cf\u5c0f");
     }
 
     private void syncSystemVolumeFromGain() {
@@ -990,10 +968,19 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void applyVoiceMode() {
-        applyBluetoothDailyMode();
+        applyBluetoothDailyMode(true);
     }
 
     private void applyBluetoothDailyMode() {
+        applyBluetoothDailyMode(true);
+    }
+
+    private void applyBluetoothDailyMode(boolean announce) {
+        if (AppSettings.MODE_BLUETOOTH_DAILY.equals(activeAppliedMode)) {
+            updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
+            return;
+        }
+        activeAppliedMode = AppSettings.MODE_BLUETOOTH_DAILY;
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
         engine.setOutputLimit(0.74f);
         engine.setFeedbackProtectionEnabled(true);
@@ -1003,11 +990,22 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setAutomaticGainEnabled(false);
         setGainProgressForValue(4.0f);
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
-        speak("\u84dd\u7259\u65e5\u5e38\u6a21\u5f0f");
-        toast("\u5df2\u5207\u6362\u5230\u84dd\u7259\u65e5\u5e38\u6a21\u5f0f");
+        if (announce) {
+            speak("\u84dd\u7259\u6a21\u5f0f");
+            toast("\u5df2\u81ea\u52a8\u5207\u6362\u5230\u84dd\u7259\u6a21\u5f0f");
+        }
     }
 
     private void applyWiredIndoorMode() {
+        applyWiredIndoorMode(true);
+    }
+
+    private void applyWiredIndoorMode(boolean announce) {
+        if (AppSettings.MODE_WIRED_INDOOR.equals(activeAppliedMode)) {
+            updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
+            return;
+        }
+        activeAppliedMode = AppSettings.MODE_WIRED_INDOOR;
         saveMode(AppSettings.MODE_WIRED_INDOOR);
         engine.setOutputLimit(0.78f);
         engine.setFeedbackProtectionEnabled(true);
@@ -1017,11 +1015,14 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setAutomaticGainEnabled(false);
         setGainProgressForValue(5.0f);
         updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
-        speak("\u6709\u7ebf\u5ba4\u5185\u6a21\u5f0f");
-        toast("\u5df2\u5207\u6362\u5230\u6709\u7ebf\u5ba4\u5185\u6a21\u5f0f");
+        if (announce) {
+            speak("\u6709\u7ebf\u6a21\u5f0f");
+            toast("\u5df2\u81ea\u52a8\u5207\u6362\u5230\u6709\u7ebf\u6a21\u5f0f");
+        }
     }
 
     private void applyPocketMode() {
+        activeAppliedMode = AppSettings.MODE_POCKET;
         saveMode(AppSettings.MODE_POCKET);
         engine.setOutputLimit(0.72f);
         engine.setFeedbackProtectionEnabled(true);
@@ -1036,6 +1037,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void applySevereMode() {
+        activeAppliedMode = AppSettings.MODE_SEVERE;
         saveMode(AppSettings.MODE_SEVERE);
         engine.setOutputLimit(0.86f);
         engine.setFeedbackProtectionEnabled(true);
@@ -1048,48 +1050,42 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         speak("\u91cd\u5ea6\u6a21\u5f0f");
     }
 
+    private void applyAutoRouteMode(boolean announce) {
+        String currentMode = AppSettings.sceneMode(this);
+        if (AppSettings.MODE_SEVERE.equals(currentMode) || AppSettings.MODE_POCKET.equals(currentMode)) {
+            updateModeFeedback(currentMode);
+            return;
+        }
+        if (engine.hasWiredOutput()) {
+            applyWiredIndoorMode(announce);
+        } else {
+            applyBluetoothDailyMode(announce);
+        }
+    }
+
     private void updateModeFeedback(String mode) {
         if (modeStatusText == null) {
             return;
         }
-        bluetoothModeButton.setText("\u84dd\u7259\u65e5\u5e38");
-        wiredModeButton.setText("\u6709\u7ebf\u5ba4\u5185");
-        severeModeButton.setText("\u91cd\u5ea6");
-        pocketModeButton.setText("\u53e3\u888b\u6a21\u5f0f");
         setSwitchChecked(severeModeSwitch, AppSettings.MODE_SEVERE.equals(mode));
-        styleModeButton(bluetoothModeButton, false);
-        styleModeButton(wiredModeButton, false);
-        styleModeButton(severeModeButton, false);
-        styleModeButton(pocketModeButton, false);
+        setSwitchChecked(pocketModeSwitch, AppSettings.MODE_POCKET.equals(mode));
         if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
-            wiredModeButton.setText("\u2713 \u6709\u7ebf\u5ba4\u5185");
-            styleModeButton(wiredModeButton, true);
-            modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u6709\u7ebf\u5ba4\u5185");
+            modeStatusText.setText("\u81ea\u52a8\u6a21\u5f0f\uff1a\u6709\u7ebf/USB \u8033\u673a");
         } else if (AppSettings.MODE_POCKET.equals(mode)) {
-            pocketModeButton.setText("\u2713 \u53e3\u888b\u6a21\u5f0f");
-            styleModeButton(pocketModeButton, true);
             modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u53e3\u888b\u6a21\u5f0f");
         } else if (AppSettings.MODE_SEVERE.equals(mode)) {
-            severeModeButton.setText("\u2713 \u91cd\u5ea6");
-            styleModeButton(severeModeButton, true);
             modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u91cd\u5ea6");
+        } else if (!engine.hasBluetoothOutput() && !engine.hasWiredOutput()) {
+            modeStatusText.setText("\u81ea\u52a8\u6a21\u5f0f\uff1a\u7b49\u5f85\u8033\u673a");
         } else {
-            bluetoothModeButton.setText("\u2713 \u84dd\u7259\u65e5\u5e38");
-            styleModeButton(bluetoothModeButton, true);
-            modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u84dd\u7259\u65e5\u5e38");
+            modeStatusText.setText("\u81ea\u52a8\u6a21\u5f0f\uff1a\u84dd\u7259\u8033\u673a");
         }
-    }
-
-    private void styleModeButton(Button button, boolean selected) {
-        button.setTextSize(selected ? 17 : 15);
-        button.setTextColor(selected ? 0xFFFFFFFF : 0xFF10231F);
-        button.setBackgroundColor(selected ? 0xFF1B6B55 : 0xFFE3ECE8);
     }
 
     private void configureVoiceGuide() {
         textToSpeech.setLanguage(Locale.CHINA);
-        textToSpeech.setSpeechRate(1.18f);
-        textToSpeech.setPitch(1.03f);
+        textToSpeech.setSpeechRate(1.25f);
+        textToSpeech.setPitch(0.72f);
         Voice preferredVoice = findPreferredChineseVoice();
         if (preferredVoice != null) {
             textToSpeech.setVoice(preferredVoice);
@@ -1154,6 +1150,16 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             return;
         }
         textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "hearing-aid-guide");
+    }
+
+    private void speakOncePerBurst(String text) {
+        long now = System.currentTimeMillis();
+        if (text.equals(lastSpokenText) && now - lastSpokenAtMillis < 1500L) {
+            return;
+        }
+        lastSpokenText = text;
+        lastSpokenAtMillis = now;
+        speak(text);
     }
 
     private void showHearingTestDialog() {
@@ -1234,6 +1240,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
     private void updateRouteStatus() {
         statusText.setText(engine.describeOutputRoute());
+        applyAutoRouteMode(false);
     }
 
     private LinearLayout.LayoutParams matchWidthWrapHeight() {
