@@ -84,6 +84,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private Button pauseAutoButton;
     private SeekBar gainSeek;
     private Switch severeModeSwitch;
+    private Switch boneConductionSwitch;
     private Switch pocketModeSwitch;
     private Switch wiredAutoStartSwitch;
     private Switch voiceSwitch;
@@ -356,7 +357,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 3.0\uff1a\u672c\u5730\u58f0\u7ebf\u8fc7\u6ee4\u5b9e\u9a8c");
+        versionText.setText("\u7248\u672c 3.1\uff1a\u9aa8\u4f20\u5bfc\u8033\u673a\u6a21\u5f0f");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -569,6 +570,21 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                     if (isChecked) {
                         applySevereMode();
                     } else {
+                        exitSpecialMode();
+                        applyAutoRouteMode(true);
+                    }
+                });
+
+        boneConductionSwitch = addSettingSwitch(
+                content,
+                "\u9aa8\u4f20\u5bfc\u8033\u673a\u6a21\u5f0f",
+                AppSettings.MODE_BONE_CONDUCTION.equals(AppSettings.sceneMode(this)),
+                "\u9aa8\u4f20\u5bfc\u8033\u673a\u4e0d\u5165\u8033\uff0c\u542c\u611f\u4f1a\u5c0f\u5f88\u591a\u3002\u6253\u5f00\u540e\u4f1a\u628a\u624b\u673a\u5a92\u4f53\u97f3\u91cf\u8c03\u5230\u6700\u5927\uff0cApp \u6536\u58f0\u548c\u653e\u5927\u4e5f\u4f1a\u66f4\u9ad8\u3002",
+                isChecked -> {
+                    if (isChecked) {
+                        applyBoneConductionMode();
+                    } else {
+                        exitSpecialMode();
                         applyAutoRouteMode(true);
                     }
                 });
@@ -582,6 +598,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                     if (isChecked) {
                         applyPocketMode();
                     } else {
+                        exitSpecialMode();
                         applyAutoRouteMode(true);
                     }
                 });
@@ -1308,6 +1325,12 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         lastSeenSystemVolume = targetVolume;
     }
 
+    private void setSystemMusicVolumeMax() {
+        int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0);
+        lastSeenSystemVolume = maxVolume;
+    }
+
     private void syncGainFromSystemVolume() {
         if (!isSyncPhoneVolumeEnabled() || gainSeek == null) {
             return;
@@ -1346,6 +1369,11 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
     private void saveMode(String mode) {
         AppSettings.prefs(this).edit().putString(AppSettings.KEY_SCENE_MODE, mode).apply();
+    }
+
+    private void exitSpecialMode() {
+        activeAppliedMode = null;
+        saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
     }
 
     private void setVoiceEnhancementEnabled(boolean enabled) {
@@ -1593,6 +1621,24 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         toast("\u5df2\u5207\u6362\u5230\u53e3\u888b\u6a21\u5f0f");
     }
 
+    private void applyBoneConductionMode() {
+        activeAppliedMode = AppSettings.MODE_BONE_CONDUCTION;
+        saveMode(AppSettings.MODE_BONE_CONDUCTION);
+        engine.setOutputLimit(0.90f);
+        engine.setFeedbackProtectionEnabled(true);
+        setVoiceEnhancementEnabled(true);
+        setFarPickupEnabled(true);
+        setEchoCancellationEnabled(false);
+        setSelfVoiceReductionEnabled(true);
+        setNoiseSuppressionEnabled(true);
+        setAutomaticGainEnabled(true);
+        setGainProgressForValue(16.0f);
+        setSystemMusicVolumeMax();
+        updateModeFeedback(AppSettings.MODE_BONE_CONDUCTION);
+        speak("\u9aa8\u4f20\u5bfc\u6a21\u5f0f");
+        toast("\u5df2\u5f00\u542f\u9aa8\u4f20\u5bfc\u6a21\u5f0f\uff0c\u97f3\u91cf\u5df2\u8c03\u5230\u6700\u5927");
+    }
+
     private void applySevereMode() {
         activeAppliedMode = AppSettings.MODE_SEVERE;
         saveMode(AppSettings.MODE_SEVERE);
@@ -1611,8 +1657,16 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
     private void applyAutoRouteMode(boolean announce) {
         String currentMode = AppSettings.sceneMode(this);
-        if (AppSettings.MODE_SEVERE.equals(currentMode) || AppSettings.MODE_POCKET.equals(currentMode)) {
-            updateModeFeedback(currentMode);
+        if (AppSettings.MODE_SEVERE.equals(currentMode)) {
+            applySevereMode();
+            return;
+        }
+        if (AppSettings.MODE_POCKET.equals(currentMode)) {
+            applyPocketMode();
+            return;
+        }
+        if (AppSettings.MODE_BONE_CONDUCTION.equals(currentMode)) {
+            applyBoneConductionMode();
             return;
         }
         if (engine.hasWiredOutput()) {
@@ -1629,6 +1683,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             return;
         }
         setSwitchChecked(severeModeSwitch, AppSettings.MODE_SEVERE.equals(mode));
+        setSwitchChecked(boneConductionSwitch, AppSettings.MODE_BONE_CONDUCTION.equals(mode));
         setSwitchChecked(pocketModeSwitch, AppSettings.MODE_POCKET.equals(mode));
         if (AppSettings.autoListenPaused(this)) {
             modeStatusText.setText("\u5df2\u6682\u505c\u81ea\u52a8\u52a9\u542c\uff1a\u666e\u901a\u8033\u673a\u6a21\u5f0f");
@@ -1638,6 +1693,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u53e3\u888b\u6a21\u5f0f");
         } else if (AppSettings.MODE_SEVERE.equals(mode)) {
             modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u91cd\u5ea6");
+        } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
+            modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u9aa8\u4f20\u5bfc\u8033\u673a");
         } else if (!engine.hasBluetoothOutput() && !engine.hasWiredOutput()) {
             modeStatusText.setText("\u81ea\u52a8\u6a21\u5f0f\uff1a\u7b49\u5f85\u8033\u673a");
         } else {

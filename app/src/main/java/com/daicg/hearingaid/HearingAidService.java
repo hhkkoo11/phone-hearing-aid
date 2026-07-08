@@ -125,6 +125,16 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setSelfVoiceReductionEnabled(false);
             engine.setNoiseSuppressionEnabled(true);
             engine.setAutomaticGainEnabled(true);
+        } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
+            engine.setGain(16.0f);
+            engine.setOutputLimit(0.90f);
+            engine.setVoiceEnhancementEnabled(true);
+            engine.setFarPickupEnabled(true);
+            engine.setEchoCancellationEnabled(false);
+            engine.setSelfVoiceReductionEnabled(true);
+            engine.setNoiseSuppressionEnabled(true);
+            engine.setAutomaticGainEnabled(true);
+            setSystemMusicVolumeMax();
         } else {
             engine.setGain(4.0f);
             engine.setOutputLimit(0.74f);
@@ -136,6 +146,17 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setAutomaticGainEnabled(false);
         }
         engine.setFeedbackProtectionEnabled(true);
+    }
+
+    private void setSystemMusicVolumeMax() {
+        android.media.AudioManager audioManager =
+                (android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (audioManager != null) {
+            audioManager.setStreamVolume(
+                    android.media.AudioManager.STREAM_MUSIC,
+                    audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC),
+                    0);
+        }
     }
 
     private void applySelfVoiceProfile() {

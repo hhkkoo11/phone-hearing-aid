@@ -23,6 +23,7 @@ final class AppSettings {
     static final String MODE_WIRED_INDOOR = "wired_indoor";
     static final String MODE_POCKET = "pocket";
     static final String MODE_SEVERE = "severe";
+    static final String MODE_BONE_CONDUCTION = "bone_conduction";
 
     private AppSettings() {
     }
