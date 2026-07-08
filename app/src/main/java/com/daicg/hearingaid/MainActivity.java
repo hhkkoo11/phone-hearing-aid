@@ -71,6 +71,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private Button severeModeButton;
     private Button pocketModeButton;
     private SeekBar gainSeek;
+    private Switch severeModeSwitch;
     private Switch wiredAutoStartSwitch;
     private Switch voiceSwitch;
     private Switch farPickupSwitch;
@@ -85,6 +86,11 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private long updateDownloadId = -1L;
     private Uri pendingInstallUri;
     private boolean downloadReceiverRegistered;
+    private boolean suppressSwitchCallback;
+    private boolean voiceEnhancementEnabled = true;
+    private boolean farPickupEnabled = true;
+    private boolean noiseSuppressionEnabled = true;
+    private boolean automaticGainEnabled;
 
     private final Runnable volumeSyncPoller = new Runnable() {
         @Override
@@ -262,7 +268,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (syncPhoneVolumeSwitch != null && syncPhoneVolumeSwitch.isChecked()) {
+        if (isSyncPhoneVolumeEnabled()) {
             if (event.getAction() == KeyEvent.ACTION_DOWN
                     && event.getRepeatCount() == 0
                     && event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP) {
@@ -293,6 +299,17 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.setGravity(Gravity.CENTER_HORIZONTAL);
         root.setBackgroundColor(0xFFF5F7F6);
 
+        Button settingsButton = new Button(this);
+        settingsButton.setText("\u8bbe\u7f6e");
+        settingsButton.setTextSize(15);
+        settingsButton.setAllCaps(false);
+        settingsButton.setOnClickListener(v -> showSettingsDialog());
+        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(
+                dp(112),
+                dp(44));
+        settingsParams.gravity = Gravity.RIGHT;
+        root.addView(settingsButton, settingsParams);
+
         statusText = new TextView(this);
         statusText.setTextSize(16);
         statusText.setTextColor(0xFF315048);
@@ -301,7 +318,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 1.1\uff1a\u5df2\u652f\u6301\u68c0\u67e5\u66f4\u65b0");
+        versionText.setText("\u7248\u672c 1.2\uff1a\u8bbe\u7f6e\u5df2\u96c6\u4e2d");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -408,17 +425,6 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(pocketModeButton, matchWidthFixedHeight(48));
         root.addView(makeHelpText("\u53e3\u888b\u6a21\u5f0f\uff1a\u624b\u673a\u653e\u53e3\u888b\u65f6\u7528\uff0c\u5c3d\u91cf\u51cf\u5c11\u8863\u670d\u6469\u64e6\u58f0\u548c\u95f7\u58f0\u3002"), matchWidthWrapHeight());
 
-        Switch severeSwitch = makeSwitch("\u91cd\u5ea6\u8033\u80cc\u6a21\u5f0f", false);
-        severeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                applySevereMode();
-                toast("\u5df2\u5f00\u542f\u66f4\u5927\u58f0\u6a21\u5f0f\uff0c\u4f46\u4ecd\u4fdd\u7559\u9650\u5e45\u4fdd\u62a4");
-            } else {
-                applyBluetoothDailyMode();
-            }
-        });
-        root.addView(severeSwitch, matchWidthWrapHeight());
-
         Button maxButton = new Button(this);
         maxButton.setText("\u6700\u5927\u6863");
         maxButton.setTextSize(16);
@@ -431,81 +437,6 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(maxButton, matchWidthFixedHeight(48));
         root.addView(makeHelpText("\u6700\u5927\u6863\uff1a\u5df2\u7ecf\u662f\u8fd9\u4e2a App \u7684\u6700\u5927\u653e\u5927\u3002\u5982\u679c\u5578\u53eb\u6216\u523a\u8033\uff0c\u9a6c\u4e0a\u6309 -\u3002"), matchWidthWrapHeight());
 
-        Button hearingTestButton = new Button(this);
-        hearingTestButton.setText("\u7b80\u6613\u542c\u529b\u6d4b\u8bd5");
-        hearingTestButton.setTextSize(16);
-        hearingTestButton.setAllCaps(false);
-        hearingTestButton.setOnClickListener(v -> showHearingTestDialog());
-        root.addView(hearingTestButton, matchWidthFixedHeight(48));
-        root.addView(makeHelpText("\u542c\u529b\u6d4b\u8bd5\uff1a\u4f9d\u6b21\u64ad\u653e\u4e0d\u540c\u9891\u7387\u7684\u58f0\u97f3\uff0c\u5148\u7528\u6765\u5224\u65ad\u54ea\u4e9b\u97f3\u66f4\u96be\u542c\u5230\u3002"), matchWidthWrapHeight());
-
-        voiceSwitch = makeSwitch("\u4eba\u58f0\u6e05\u6670", true);
-        voiceSwitch.setOnCheckedChangeListener((buttonView, isChecked) ->
-                engine.setVoiceEnhancementEnabled(isChecked));
-        root.addView(voiceSwitch, matchWidthWrapHeight());
-        root.addView(makeHelpText("\u4eba\u58f0\u6e05\u6670\uff1a\u4e3b\u8981\u8ba9\u8bf4\u8bdd\u58f0\u66f4\u6e05\u695a\uff0c\u5c11\u4e00\u70b9\u95f7\u3002"), matchWidthWrapHeight());
-
-        farPickupSwitch = makeSwitch("\u8fdc\u8ddd\u79bb\u6536\u58f0", true);
-        farPickupSwitch.setOnCheckedChangeListener((buttonView, isChecked) ->
-                engine.setFarPickupEnabled(isChecked));
-        root.addView(farPickupSwitch, matchWidthWrapHeight());
-        root.addView(makeHelpText("\u8fdc\u8ddd\u79bb\u6536\u58f0\uff1a\u60f3\u542c\u8fdc\u4e00\u70b9\u7684\u4eba\u8bf4\u8bdd\u5c31\u6253\u5f00\uff0c\u4f46\u6742\u97f3\u4e5f\u4f1a\u53d8\u591a\u3002"), matchWidthWrapHeight());
-
-        wiredAutoStartSwitch = makeSwitch("\u6709\u7ebf\u8033\u673a\u63d2\u5165\u81ea\u52a8\u5f00\u542f", true);
-        wiredAutoStartSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                autoStartIfWiredAlreadyConnected();
-            }
-        });
-        root.addView(wiredAutoStartSwitch, matchWidthWrapHeight());
-
-        noiseSwitch = makeSwitch("\u964d\u566a", true);
-        noiseSwitch.setOnCheckedChangeListener((buttonView, isChecked) ->
-                engine.setNoiseSuppressionEnabled(isChecked));
-        root.addView(noiseSwitch, matchWidthWrapHeight());
-        root.addView(makeHelpText("\u964d\u566a\uff1a\u5c3d\u91cf\u538b\u4f4e\u98ce\u58f0\u3001\u7a7a\u8c03\u58f0\u3001\u5e95\u566a\u3002"), matchWidthWrapHeight());
-
-        agcSwitch = makeSwitch("\u81ea\u52a8\u589e\u76ca", false);
-        agcSwitch.setOnCheckedChangeListener((buttonView, isChecked) ->
-                engine.setAutomaticGainEnabled(isChecked));
-        root.addView(agcSwitch, matchWidthWrapHeight());
-        root.addView(makeHelpText("\u81ea\u52a8\u589e\u76ca\uff1a\u5c0f\u58f0\u65f6\u81ea\u52a8\u62ac\u9ad8\uff0c\u9002\u5408\u91cd\u5ea6\u8033\u80cc\uff0c\u4f46\u6709\u65f6\u4f1a\u628a\u6742\u97f3\u4e5f\u62ac\u9ad8\u3002"), matchWidthWrapHeight());
-
-        autoMonitorSwitch = makeSwitch("\u540e\u53f0\u81ea\u52a8\u76d1\u6d4b\u8033\u673a", AppSettings.autoMonitorEnabled(this));
-        autoMonitorSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_AUTO_MONITOR, isChecked).apply();
-            if (isChecked) {
-                HeadsetMonitorService.start(this);
-            } else {
-                HeadsetMonitorService.stop(this);
-                HearingAidService.stop(this);
-            }
-        });
-        root.addView(autoMonitorSwitch, matchWidthWrapHeight());
-        root.addView(makeHelpText("\u540e\u53f0\u81ea\u52a8\u76d1\u6d4b\uff1a\u4e0d\u6253\u5f00 App \u4e5f\u4f1a\u7b49\u8033\u673a\u8fde\u63a5\uff0c\u5e73\u65f6\u53ea\u662f\u4f4e\u529f\u8017\u5f85\u547d\u3002"), matchWidthWrapHeight());
-
-        loudWarningSwitch = makeSwitch("\u6536\u97f3\u8fc7\u5927\u65f6\u63d0\u9192", AppSettings.loudWarningEnabled(this));
-        loudWarningSwitch.setOnCheckedChangeListener((buttonView, isChecked) ->
-                AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_LOUD_WARNING, isChecked).apply());
-        root.addView(loudWarningSwitch, matchWidthWrapHeight());
-        root.addView(makeHelpText("\u6536\u97f3\u8fc7\u5927\u65f6\u63d0\u9192\uff1a\u53ea\u5728\u58f0\u97f3\u6301\u7eed\u504f\u5927\u65f6\u63d0\u9192\uff0c\u89c9\u5f97\u70e6\u53ef\u4ee5\u5173\u6389\u3002"), matchWidthWrapHeight());
-
-        syncPhoneVolumeSwitch = makeSwitch("\u8ddf\u968f\u624b\u673a\u97f3\u91cf", AppSettings.syncPhoneVolumeEnabled(this));
-        syncPhoneVolumeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_SYNC_PHONE_VOLUME, isChecked).apply();
-            if (isChecked) {
-                syncSystemVolumeFromGain();
-            }
-        });
-        root.addView(syncPhoneVolumeSwitch, matchWidthWrapHeight());
-        root.addView(makeHelpText("\u8ddf\u968f\u624b\u673a\u97f3\u91cf\uff1a\u6253\u5f00\u540e\uff0cApp \u91cc\u7684 + / - \u548c\u624b\u673a\u97f3\u91cf\u952e\u4f1a\u4e00\u8d77\u8c03\u3002"), matchWidthWrapHeight());
-
-        voiceGuideSwitch = makeSwitch("\u6309\u94ae\u8bed\u97f3\u64ad\u62a5", AppSettings.voiceGuideEnabled(this));
-        voiceGuideSwitch.setOnCheckedChangeListener((buttonView, isChecked) ->
-                AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_VOICE_GUIDE, isChecked).apply());
-        root.addView(voiceGuideSwitch, matchWidthWrapHeight());
-        root.addView(makeHelpText("\u8bed\u97f3\u64ad\u62a5\uff1a\u70b9\u6309\u94ae\u65f6\u5927\u58f0\u8bf4\u51fa\u5f53\u524d\u64cd\u4f5c\uff0c\u4e0d\u60f3\u542c\u53ef\u4ee5\u5173\u6389\u3002"), matchWidthWrapHeight());
-
         TextView levelLabel = new TextView(this);
         levelLabel.setText("\u8f93\u5165\u7535\u5e73");
         levelLabel.setTextSize(16);
@@ -517,14 +448,6 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         levelMeter.setMax(100);
         root.addView(levelMeter, matchWidthFixedHeight(22));
         root.addView(makeHelpText("\u8f93\u5165\u7535\u5e73\uff1a\u8fd9\u6761\u662f\u624b\u673a\u9ea6\u514b\u98ce\u73b0\u5728\u6536\u5230\u7684\u58f0\u97f3\u5927\u5c0f\uff0c\u4e0d\u662f\u8033\u673a\u97f3\u91cf\u3002"), matchWidthWrapHeight());
-
-        Button updateButton = new Button(this);
-        updateButton.setText("\u68c0\u67e5\u66f4\u65b0");
-        updateButton.setTextSize(16);
-        updateButton.setAllCaps(false);
-        updateButton.setOnClickListener(v -> checkForUpdate());
-        root.addView(updateButton, matchWidthFixedHeight(48));
-        root.addView(makeHelpText("\u68c0\u67e5\u66f4\u65b0\uff1a\u6709\u65b0\u7248\u672c\u65f6\u4f1a\u5148\u4e0b\u8f7d\uff0c\u518d\u8df3\u5230\u7cfb\u7edf\u5b89\u88c5\u9875\uff0c\u9700\u8981\u624b\u52a8\u70b9\u786e\u8ba4\u5b89\u88c5\u3002"), matchWidthWrapHeight());
 
         TextView hint = new TextView(this);
         hint.setText("\u5efa\u8bae\u5148\u5f00\u91cd\u5ea6\u8033\u80cc\u6a21\u5f0f\u548c\u8fdc\u8ddd\u79bb\u6536\u58f0\uff0c\u518d\u6162\u6162\u8c03\u589e\u76ca\u3002\u5982\u679c\u51fa\u73b0\u5578\u53eb\uff0c\u5148\u964d\u4f4e\u589e\u76ca\u6216\u5173\u95ed\u8fdc\u8ddd\u79bb\u6536\u58f0\u3002");
@@ -574,6 +497,162 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         view.setTextColor(0xFF66736F);
         view.setPadding(0, dp(4), 0, dp(6));
         return view;
+    }
+
+    private void showSettingsDialog() {
+        int pad = dp(18);
+        ScrollView scrollView = new ScrollView(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(pad, dp(4), pad, dp(8));
+
+        severeModeSwitch = addSettingSwitch(
+                content,
+                "\u91cd\u5ea6\u8033\u80cc\u6a21\u5f0f",
+                AppSettings.MODE_SEVERE.equals(AppSettings.sceneMode(this)),
+                "\u66f4\u5927\u58f0\uff0c\u4f46\u4ecd\u4fdd\u7559\u9650\u5e45\u548c\u5578\u53eb\u4fdd\u62a4\u3002",
+                isChecked -> {
+                    if (isChecked) {
+                        applySevereMode();
+                    } else {
+                        applyBluetoothDailyMode();
+                    }
+                });
+
+        voiceSwitch = addSettingSwitch(
+                content,
+                "\u4eba\u58f0\u6e05\u6670",
+                voiceEnhancementEnabled,
+                "\u4e3b\u8981\u8ba9\u8bf4\u8bdd\u58f0\u66f4\u6e05\u695a\uff0c\u5c11\u4e00\u70b9\u95f7\u3002",
+                this::setVoiceEnhancementEnabled);
+
+        farPickupSwitch = addSettingSwitch(
+                content,
+                "\u8fdc\u8ddd\u79bb\u6536\u58f0",
+                farPickupEnabled,
+                "\u60f3\u542c\u8fdc\u4e00\u70b9\u7684\u4eba\u8bf4\u8bdd\u5c31\u6253\u5f00\uff0c\u4f46\u6742\u97f3\u4e5f\u4f1a\u53d8\u591a\u3002",
+                this::setFarPickupEnabled);
+
+        wiredAutoStartSwitch = addSettingSwitch(
+                content,
+                "\u6709\u7ebf\u8033\u673a\u63d2\u5165\u81ea\u52a8\u5f00\u542f",
+                isWiredAutoStartEnabled(),
+                "\u68c0\u6d4b\u5230\u6807\u51c6\u6709\u7ebf\u6216 USB \u97f3\u9891\u8f93\u51fa\u65f6\u81ea\u52a8\u5f00\u59cb\u52a9\u542c\u3002",
+                isChecked -> {
+                    AppSettings.prefs(this).edit()
+                            .putBoolean(AppSettings.KEY_WIRED_AUTO_START, isChecked)
+                            .apply();
+                    if (isChecked) {
+                        autoStartIfWiredAlreadyConnected();
+                    }
+                });
+
+        noiseSwitch = addSettingSwitch(
+                content,
+                "\u964d\u566a",
+                noiseSuppressionEnabled,
+                "\u5c3d\u91cf\u538b\u4f4e\u98ce\u58f0\u3001\u7a7a\u8c03\u58f0\u3001\u5e95\u566a\u3002",
+                this::setNoiseSuppressionEnabled);
+
+        agcSwitch = addSettingSwitch(
+                content,
+                "\u81ea\u52a8\u589e\u76ca",
+                automaticGainEnabled,
+                "\u5c0f\u58f0\u65f6\u81ea\u52a8\u62ac\u9ad8\uff0c\u4f46\u6709\u65f6\u4f1a\u628a\u6742\u97f3\u4e5f\u62ac\u9ad8\u3002",
+                this::setAutomaticGainEnabled);
+
+        autoMonitorSwitch = addSettingSwitch(
+                content,
+                "\u540e\u53f0\u81ea\u52a8\u76d1\u6d4b\u8033\u673a",
+                AppSettings.autoMonitorEnabled(this),
+                "\u4e0d\u6253\u5f00 App \u4e5f\u4f1a\u7b49\u8033\u673a\u8fde\u63a5\uff0c\u5e73\u65f6\u53ea\u662f\u4f4e\u529f\u8017\u5f85\u547d\u3002",
+                isChecked -> {
+                    AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_AUTO_MONITOR, isChecked).apply();
+                    if (isChecked) {
+                        HeadsetMonitorService.start(this);
+                    } else {
+                        HeadsetMonitorService.stop(this);
+                        HearingAidService.stop(this);
+                    }
+                });
+
+        loudWarningSwitch = addSettingSwitch(
+                content,
+                "\u6536\u97f3\u8fc7\u5927\u65f6\u63d0\u9192",
+                AppSettings.loudWarningEnabled(this),
+                "\u58f0\u97f3\u6301\u7eed\u504f\u5927\u65f6\u63d0\u9192\uff0c\u89c9\u5f97\u70e6\u53ef\u4ee5\u5173\u6389\u3002",
+                isChecked -> AppSettings.prefs(this).edit()
+                        .putBoolean(AppSettings.KEY_LOUD_WARNING, isChecked)
+                        .apply());
+
+        syncPhoneVolumeSwitch = addSettingSwitch(
+                content,
+                "\u8ddf\u968f\u624b\u673a\u97f3\u91cf",
+                isSyncPhoneVolumeEnabled(),
+                "App \u91cc\u7684 + / - \u548c\u624b\u673a\u97f3\u91cf\u952e\u4f1a\u4e00\u8d77\u8c03\u3002",
+                isChecked -> {
+                    AppSettings.prefs(this).edit()
+                            .putBoolean(AppSettings.KEY_SYNC_PHONE_VOLUME, isChecked)
+                            .apply();
+                    if (isChecked) {
+                        syncSystemVolumeFromGain();
+                    }
+                });
+
+        voiceGuideSwitch = addSettingSwitch(
+                content,
+                "\u6309\u94ae\u8bed\u97f3\u64ad\u62a5",
+                isVoiceGuideEnabled(),
+                "\u70b9\u6309\u94ae\u65f6\u5927\u58f0\u8bf4\u51fa\u5f53\u524d\u64cd\u4f5c\uff0c\u4e0d\u60f3\u542c\u53ef\u4ee5\u5173\u6389\u3002",
+                isChecked -> AppSettings.prefs(this).edit()
+                        .putBoolean(AppSettings.KEY_VOICE_GUIDE, isChecked)
+                        .apply());
+
+        Button hearingTestButton = makeSettingsButton("\u7b80\u6613\u542c\u529b\u6d4b\u8bd5");
+        hearingTestButton.setOnClickListener(v -> showHearingTestDialog());
+        content.addView(hearingTestButton, matchWidthFixedHeight(48));
+        content.addView(makeHelpText("\u64ad\u653e\u4e0d\u540c\u9891\u7387\u7684\u6d4b\u8bd5\u97f3\uff0c\u7528\u6765\u8bb0\u5f55\u54ea\u4e9b\u97f3\u66f4\u96be\u542c\u5230\u3002"), matchWidthWrapHeight());
+
+        Button updateButton = makeSettingsButton("\u68c0\u67e5\u66f4\u65b0");
+        updateButton.setOnClickListener(v -> checkForUpdate());
+        content.addView(updateButton, matchWidthFixedHeight(48));
+        content.addView(makeHelpText("\u6709\u65b0\u7248\u672c\u65f6\u4f1a\u5148\u4e0b\u8f7d\uff0c\u518d\u8df3\u5230\u7cfb\u7edf\u5b89\u88c5\u9875\u3002"), matchWidthWrapHeight());
+
+        scrollView.addView(content);
+        new AlertDialog.Builder(this)
+                .setTitle("\u8bbe\u7f6e")
+                .setView(scrollView)
+                .setPositiveButton("\u5b8c\u6210", null)
+                .show();
+    }
+
+    private Switch addSettingSwitch(
+            LinearLayout content,
+            String title,
+            boolean checked,
+            String help,
+            SettingChangeHandler handler) {
+        Switch view = makeSwitch(title, checked);
+        view.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!suppressSwitchCallback) {
+                handler.onChanged(isChecked);
+            }
+        });
+        content.addView(view, matchWidthWrapHeight());
+        content.addView(makeHelpText(help), matchWidthWrapHeight());
+        return view;
+    }
+
+    private Button makeSettingsButton(String text) {
+        Button button = new Button(this);
+        button.setText(text);
+        button.setTextSize(16);
+        button.setAllCaps(false);
+        return button;
+    }
+
+    private interface SettingChangeHandler {
+        void onChanged(boolean isChecked);
     }
 
     private void checkForUpdate() {
@@ -759,8 +838,26 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setRunningUi(true);
     }
 
+    private boolean isWiredAutoStartEnabled() {
+        return wiredAutoStartSwitch != null
+                ? wiredAutoStartSwitch.isChecked()
+                : AppSettings.wiredAutoStartEnabled(this);
+    }
+
+    private boolean isSyncPhoneVolumeEnabled() {
+        return syncPhoneVolumeSwitch != null
+                ? syncPhoneVolumeSwitch.isChecked()
+                : AppSettings.syncPhoneVolumeEnabled(this);
+    }
+
+    private boolean isVoiceGuideEnabled() {
+        return voiceGuideSwitch != null
+                ? voiceGuideSwitch.isChecked()
+                : AppSettings.voiceGuideEnabled(this);
+    }
+
     private void autoStartIfWiredAlreadyConnected() {
-        if (wiredAutoStartSwitch != null && wiredAutoStartSwitch.isChecked()
+        if (isWiredAutoStartEnabled()
                 && engine.hasWiredOutput() && !engine.isRunning()) {
             ensurePermissionsThenStart();
         }
@@ -768,7 +865,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
     private void handleWiredHeadsetState(int state) {
         if (state == 1) {
-            if (wiredAutoStartSwitch != null && wiredAutoStartSwitch.isChecked()
+            if (isWiredAutoStartEnabled()
                     && !engine.isRunning()) {
                 toast("\u5df2\u68c0\u6d4b\u5230\u6709\u7ebf\u8033\u673a\uff0c\u81ea\u52a8\u5f00\u542f\u52a9\u542c");
                 ensurePermissionsThenStart();
@@ -804,7 +901,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void syncSystemVolumeFromGain() {
-        if (suppressVolumeSync || syncPhoneVolumeSwitch == null || !syncPhoneVolumeSwitch.isChecked()) {
+        if (suppressVolumeSync || !isSyncPhoneVolumeEnabled()) {
             return;
         }
         int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
@@ -815,7 +912,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void syncGainFromSystemVolume() {
-        if (syncPhoneVolumeSwitch == null || !syncPhoneVolumeSwitch.isChecked() || gainSeek == null) {
+        if (!isSyncPhoneVolumeEnabled() || gainSeek == null) {
             return;
         }
         int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
@@ -831,7 +928,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void syncGainFromSystemVolumeIfChanged() {
-        if (syncPhoneVolumeSwitch == null || !syncPhoneVolumeSwitch.isChecked() || gainSeek == null) {
+        if (!isSyncPhoneVolumeEnabled() || gainSeek == null) {
             return;
         }
         int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
@@ -854,14 +951,38 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         AppSettings.prefs(this).edit().putString(AppSettings.KEY_SCENE_MODE, mode).apply();
     }
 
+    private void setVoiceEnhancementEnabled(boolean enabled) {
+        voiceEnhancementEnabled = enabled;
+        engine.setVoiceEnhancementEnabled(enabled);
+        setSwitchChecked(voiceSwitch, enabled);
+    }
+
+    private void setFarPickupEnabled(boolean enabled) {
+        farPickupEnabled = enabled;
+        engine.setFarPickupEnabled(enabled);
+        setSwitchChecked(farPickupSwitch, enabled);
+    }
+
+    private void setNoiseSuppressionEnabled(boolean enabled) {
+        noiseSuppressionEnabled = enabled;
+        engine.setNoiseSuppressionEnabled(enabled);
+        setSwitchChecked(noiseSwitch, enabled);
+    }
+
+    private void setAutomaticGainEnabled(boolean enabled) {
+        automaticGainEnabled = enabled;
+        engine.setAutomaticGainEnabled(enabled);
+        setSwitchChecked(agcSwitch, enabled);
+    }
+
     private void applySafeMode() {
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
         engine.setOutputLimit(0.62f);
         engine.setFeedbackProtectionEnabled(true);
-        setSwitchChecked(voiceSwitch, true);
-        setSwitchChecked(farPickupSwitch, false);
-        setSwitchChecked(noiseSwitch, true);
-        setSwitchChecked(agcSwitch, false);
+        setVoiceEnhancementEnabled(true);
+        setFarPickupEnabled(false);
+        setNoiseSuppressionEnabled(true);
+        setAutomaticGainEnabled(false);
         setGainProgressForValue(2.5f);
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         toast("\u5df2\u5207\u6362\u5230\u5b89\u5168\u6a21\u5f0f");
@@ -875,10 +996,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
         engine.setOutputLimit(0.74f);
         engine.setFeedbackProtectionEnabled(true);
-        setSwitchChecked(voiceSwitch, true);
-        setSwitchChecked(farPickupSwitch, true);
-        setSwitchChecked(noiseSwitch, true);
-        setSwitchChecked(agcSwitch, false);
+        setVoiceEnhancementEnabled(true);
+        setFarPickupEnabled(true);
+        setNoiseSuppressionEnabled(true);
+        setAutomaticGainEnabled(false);
         setGainProgressForValue(4.0f);
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         speak("\u84dd\u7259\u65e5\u5e38\u6a21\u5f0f");
@@ -889,10 +1010,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         saveMode(AppSettings.MODE_WIRED_INDOOR);
         engine.setOutputLimit(0.78f);
         engine.setFeedbackProtectionEnabled(true);
-        setSwitchChecked(voiceSwitch, true);
-        setSwitchChecked(farPickupSwitch, false);
-        setSwitchChecked(noiseSwitch, true);
-        setSwitchChecked(agcSwitch, false);
+        setVoiceEnhancementEnabled(true);
+        setFarPickupEnabled(false);
+        setNoiseSuppressionEnabled(true);
+        setAutomaticGainEnabled(false);
         setGainProgressForValue(5.0f);
         updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
         speak("\u6709\u7ebf\u5ba4\u5185\u6a21\u5f0f");
@@ -903,10 +1024,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         saveMode(AppSettings.MODE_POCKET);
         engine.setOutputLimit(0.72f);
         engine.setFeedbackProtectionEnabled(true);
-        setSwitchChecked(voiceSwitch, true);
-        setSwitchChecked(farPickupSwitch, false);
-        setSwitchChecked(noiseSwitch, true);
-        setSwitchChecked(agcSwitch, false);
+        setVoiceEnhancementEnabled(true);
+        setFarPickupEnabled(false);
+        setNoiseSuppressionEnabled(true);
+        setAutomaticGainEnabled(false);
         setGainProgressForValue(4.0f);
         updateModeFeedback(AppSettings.MODE_POCKET);
         speak("\u53e3\u888b\u6a21\u5f0f\u5df2\u5f00\u542f");
@@ -917,10 +1038,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         saveMode(AppSettings.MODE_SEVERE);
         engine.setOutputLimit(0.86f);
         engine.setFeedbackProtectionEnabled(true);
-        setSwitchChecked(voiceSwitch, true);
-        setSwitchChecked(farPickupSwitch, true);
-        setSwitchChecked(noiseSwitch, true);
-        setSwitchChecked(agcSwitch, true);
+        setVoiceEnhancementEnabled(true);
+        setFarPickupEnabled(true);
+        setNoiseSuppressionEnabled(true);
+        setAutomaticGainEnabled(true);
         setGainProgressForValue(7.0f);
         updateModeFeedback(AppSettings.MODE_SEVERE);
         speak("\u91cd\u5ea6\u6a21\u5f0f");
@@ -934,6 +1055,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         wiredModeButton.setText("\u6709\u7ebf\u5ba4\u5185");
         severeModeButton.setText("\u91cd\u5ea6");
         pocketModeButton.setText("\u53e3\u888b\u6a21\u5f0f");
+        setSwitchChecked(severeModeSwitch, AppSettings.MODE_SEVERE.equals(mode));
         styleModeButton(bluetoothModeButton, false);
         styleModeButton(wiredModeButton, false);
         styleModeButton(severeModeButton, false);
@@ -964,7 +1086,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void speak(String text) {
-        if (voiceGuideSwitch == null || !voiceGuideSwitch.isChecked() || textToSpeech == null) {
+        if (!isVoiceGuideEnabled() || textToSpeech == null) {
             return;
         }
         textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "hearing-aid-guide");
@@ -1025,7 +1147,12 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
     private void setSwitchChecked(Switch view, boolean checked) {
         if (view != null) {
-            view.setChecked(checked);
+            suppressSwitchCallback = true;
+            try {
+                view.setChecked(checked);
+            } finally {
+                suppressSwitchCallback = false;
+            }
         }
     }
 

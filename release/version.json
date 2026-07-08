@@ -1,6 +1,6 @@
 {
-  "versionCode": 2,
-  "versionName": "1.1",
+  "versionCode": 3,
+  "versionName": "1.2",
   "apkUrl": "https://github.com/hhkkoo11/phone-hearing-aid/releases/latest/download/hearing-aid-app.apk",
-  "notes": "当前版本已支持蓝牙日常、有线室内、人声增强、降噪、音量同步和检查更新。"
+  "notes": "设置项已集中到设置面板，根页面更简洁，保留完整助听功能。"
 }
