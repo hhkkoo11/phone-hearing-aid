@@ -1,0 +1,7 @@
+{
+  "versionCode": 1,
+  "versionName": "classic-1.0",
+  "packageName": "com.daicg.hearingaid.classic",
+  "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
+  "notes": "经典简约版，基于最初公开版本制作，保留当时的简约界面和收音逻辑；包名不同，可与最新版同时安装，用于对比测试。"
+}
