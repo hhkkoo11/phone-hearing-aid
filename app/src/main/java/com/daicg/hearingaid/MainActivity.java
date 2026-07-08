@@ -357,7 +357,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 3.1\uff1a\u9aa8\u4f20\u5bfc\u8033\u673a\u6a21\u5f0f");
+        versionText.setText("\u7248\u672c 3.2\uff1a\u9aa8\u4f20\u5bfc\u964d\u566a\u6e05\u6670\u7248");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -1530,10 +1530,15 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSwitchChecked(agcSwitch, enabled);
     }
 
+    private void setBoneNoiseControlEnabled(boolean enabled) {
+        engine.setBoneConductionNoiseControlEnabled(enabled);
+    }
+
     private void applySafeMode() {
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
         engine.setOutputLimit(0.62f);
         engine.setFeedbackProtectionEnabled(true);
+        setBoneNoiseControlEnabled(false);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
         setEchoCancellationEnabled(false);
@@ -1562,6 +1567,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
         engine.setOutputLimit(0.74f);
         engine.setFeedbackProtectionEnabled(true);
+        setBoneNoiseControlEnabled(false);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
         setEchoCancellationEnabled(false);
@@ -1589,6 +1595,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         saveMode(AppSettings.MODE_WIRED_INDOOR);
         engine.setOutputLimit(0.78f);
         engine.setFeedbackProtectionEnabled(true);
+        setBoneNoiseControlEnabled(false);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
         setEchoCancellationEnabled(false);
@@ -1609,6 +1616,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         saveMode(AppSettings.MODE_POCKET);
         engine.setOutputLimit(0.72f);
         engine.setFeedbackProtectionEnabled(true);
+        setBoneNoiseControlEnabled(false);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
         setEchoCancellationEnabled(false);
@@ -1626,13 +1634,14 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         saveMode(AppSettings.MODE_BONE_CONDUCTION);
         engine.setOutputLimit(0.90f);
         engine.setFeedbackProtectionEnabled(true);
+        setBoneNoiseControlEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(true);
         setNoiseSuppressionEnabled(true);
-        setAutomaticGainEnabled(true);
-        setGainProgressForValue(16.0f);
+        setAutomaticGainEnabled(false);
+        setGainProgressForValue(20.0f);
         setSystemMusicVolumeMax();
         updateModeFeedback(AppSettings.MODE_BONE_CONDUCTION);
         speak("\u9aa8\u4f20\u5bfc\u6a21\u5f0f");
@@ -1644,6 +1653,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         saveMode(AppSettings.MODE_SEVERE);
         engine.setOutputLimit(0.86f);
         engine.setFeedbackProtectionEnabled(true);
+        setBoneNoiseControlEnabled(false);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
         setEchoCancellationEnabled(false);

@@ -56,6 +56,7 @@ public final class HearingEngine {
     private float selfVoiceProfileZcr;
     private float selfVoiceProfileDiffRatio;
     private float selfVoiceProfilePeakRatio;
+    private boolean boneConductionNoiseControlEnabled;
     private boolean feedbackProtectionEnabled = true;
 
     public HearingEngine(Context context, Listener listener) {
@@ -106,6 +107,10 @@ public final class HearingEngine {
         this.selfVoiceProfileZcr = zcr;
         this.selfVoiceProfileDiffRatio = diffRatio;
         this.selfVoiceProfilePeakRatio = peakRatio;
+    }
+
+    public void setBoneConductionNoiseControlEnabled(boolean enabled) {
+        this.boneConductionNoiseControlEnabled = enabled;
     }
 
     public void setFeedbackProtectionEnabled(boolean enabled) {
@@ -245,7 +250,8 @@ public final class HearingEngine {
                     selfVoiceProfileEnabled,
                     selfVoiceProfileZcr,
                     selfVoiceProfileDiffRatio,
-                    selfVoiceProfilePeakRatio);
+                    selfVoiceProfilePeakRatio,
+                    boneConductionNoiseControlEnabled);
             FeedbackGuard feedbackGuard = new FeedbackGuard();
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
@@ -309,14 +315,27 @@ public final class HearingEngine {
                 voiceProcessor.selfVoiceProfileZcr,
                 voiceProcessor.selfVoiceProfileDiffRatio,
                 voiceProcessor.selfVoiceProfilePeakRatio);
+        boolean boneQuietNoise = voiceProcessor.boneConductionNoiseControlEnabled
+                && frameSignature.averageAbs < 520.0f;
         for (int i = 0; i < length; i++) {
             float input = buffer[i];
             if (enhanceVoice) {
                 input = voiceProcessor.highPass(input);
                 input = voiceProcessor.voiceShape(input);
                 float absInput = Math.abs(input);
+                if (voiceProcessor.boneConductionNoiseControlEnabled) {
+                    if (absInput < 260.0f) {
+                        input *= 0.12f;
+                    } else if (absInput < 620.0f) {
+                        input *= boneQuietNoise ? 0.38f : 0.62f;
+                    }
+                    if (boneQuietNoise) {
+                        input *= 0.72f;
+                    }
+                    absInput = Math.abs(input);
+                }
                 if (farPickup && absInput > 45.0f && absInput < 2200.0f) {
-                    input *= 1.45f;
+                    input *= voiceProcessor.boneConductionNoiseControlEnabled ? 1.12f : 1.45f;
                 }
                 float selfVoiceThreshold = profileMatched
                         ? (farPickup ? 980.0f : 760.0f)
@@ -531,13 +550,16 @@ public final class HearingEngine {
         private float selfVoiceProfileZcr;
         private float selfVoiceProfileDiffRatio;
         private float selfVoiceProfilePeakRatio;
+        private boolean boneConductionNoiseControlEnabled;
 
         VoiceProcessor(int sampleRate, boolean farPickup, boolean profileEnabled,
-                float profileZcr, float profileDiffRatio, float profilePeakRatio) {
+                float profileZcr, float profileDiffRatio, float profilePeakRatio,
+                boolean boneNoiseControl) {
             this.selfVoiceProfileEnabled = profileEnabled;
             this.selfVoiceProfileZcr = profileZcr;
             this.selfVoiceProfileDiffRatio = profileDiffRatio;
             this.selfVoiceProfilePeakRatio = profilePeakRatio;
+            this.boneConductionNoiseControlEnabled = boneNoiseControl;
         }
 
         float highPass(float input) {

@@ -101,6 +101,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
             engine.setGain(5.0f);
             engine.setOutputLimit(0.78f);
+            engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(false);
             engine.setEchoCancellationEnabled(false);
@@ -110,6 +111,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         } else if (AppSettings.MODE_POCKET.equals(mode)) {
             engine.setGain(4.0f);
             engine.setOutputLimit(0.72f);
+            engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(false);
             engine.setEchoCancellationEnabled(false);
@@ -119,6 +121,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         } else if (AppSettings.MODE_SEVERE.equals(mode)) {
             engine.setGain(7.0f);
             engine.setOutputLimit(0.86f);
+            engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(true);
             engine.setEchoCancellationEnabled(false);
@@ -126,18 +129,20 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setNoiseSuppressionEnabled(true);
             engine.setAutomaticGainEnabled(true);
         } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
-            engine.setGain(16.0f);
+            engine.setGain(20.0f);
             engine.setOutputLimit(0.90f);
+            engine.setBoneConductionNoiseControlEnabled(true);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(true);
             engine.setEchoCancellationEnabled(false);
             engine.setSelfVoiceReductionEnabled(true);
             engine.setNoiseSuppressionEnabled(true);
-            engine.setAutomaticGainEnabled(true);
+            engine.setAutomaticGainEnabled(false);
             setSystemMusicVolumeMax();
         } else {
             engine.setGain(4.0f);
             engine.setOutputLimit(0.74f);
+            engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(true);
             engine.setEchoCancellationEnabled(false);
