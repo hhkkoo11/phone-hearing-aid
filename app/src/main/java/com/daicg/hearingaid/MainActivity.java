@@ -351,7 +351,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 2.7\uff1a\u4f18\u5148\u7528\u624b\u673a\u9ea6\u514b\u98ce");
+        versionText.setText("\u7248\u672c 2.8\uff1a\u66f4\u65b0\u4e0d\u5f3a\u5236");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -953,9 +953,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private void showUpdateDialog(String versionName, String notes, String apkUrl) {
         new AlertDialog.Builder(this)
                 .setTitle("\u53d1\u73b0\u65b0\u7248\u672c " + versionName)
-                .setMessage(notes)
+                .setMessage(notes + "\n\n\u8fd9\u4e0d\u662f\u5f3a\u5236\u66f4\u65b0\uff0c\u4e0d\u66f4\u65b0\u4e5f\u53ef\u4ee5\u7ee7\u7eed\u4f7f\u7528\u5f53\u524d\u7248\u672c\u3002")
                 .setNegativeButton("\u4ee5\u540e\u518d\u8bf4", null)
                 .setPositiveButton("\u4e0b\u8f7d\u66f4\u65b0", (dialog, which) -> downloadUpdate(apkUrl))
+                .setCancelable(true)
                 .show();
     }
 
