@@ -1,6 +1,6 @@
 {
-  "versionCode": 3,
-  "versionName": "1.2",
+  "versionCode": 4,
+  "versionName": "1.3",
   "apkUrl": "https://github.com/hhkkoo11/phone-hearing-aid/releases/latest/download/hearing-aid-app.apk",
-  "notes": "设置项已集中到设置面板，根页面更简洁，保留完整助听功能。"
+  "notes": "语音播报更快，并优先选择系统开放的中文自然语音。"
 }

@@ -30,6 +30,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.widget.Button;
@@ -50,6 +51,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public final class MainActivity extends Activity implements HearingEngine.Listener {
     private static final int REQUEST_AUDIO_PERMISSIONS = 1001;
@@ -169,8 +171,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         textToSpeech = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
-                textToSpeech.setLanguage(Locale.CHINA);
-                textToSpeech.setSpeechRate(0.92f);
+                configureVoiceGuide();
             }
         });
         buildUi();
@@ -318,7 +319,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 1.2\uff1a\u8bbe\u7f6e\u5df2\u96c6\u4e2d");
+        versionText.setText("\u7248\u672c 1.3\uff1a\u8bed\u97f3\u64ad\u62a5\u5df2\u4f18\u5316");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -1083,6 +1084,69 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         button.setTextSize(selected ? 17 : 15);
         button.setTextColor(selected ? 0xFFFFFFFF : 0xFF10231F);
         button.setBackgroundColor(selected ? 0xFF1B6B55 : 0xFFE3ECE8);
+    }
+
+    private void configureVoiceGuide() {
+        textToSpeech.setLanguage(Locale.CHINA);
+        textToSpeech.setSpeechRate(1.18f);
+        textToSpeech.setPitch(1.03f);
+        Voice preferredVoice = findPreferredChineseVoice();
+        if (preferredVoice != null) {
+            textToSpeech.setVoice(preferredVoice);
+        }
+    }
+
+    private Voice findPreferredChineseVoice() {
+        Set<Voice> voices = textToSpeech.getVoices();
+        if (voices == null) {
+            return null;
+        }
+        Voice fallback = null;
+        Voice best = null;
+        int bestScore = Integer.MIN_VALUE;
+        for (Voice voice : voices) {
+            Locale locale = voice.getLocale();
+            if (locale == null || !"zh".equals(locale.getLanguage())) {
+                continue;
+            }
+            if (voice.isNetworkConnectionRequired()) {
+                continue;
+            }
+            if (fallback == null) {
+                fallback = voice;
+            }
+            int score = scoreVoice(voice);
+            if (score > bestScore) {
+                bestScore = score;
+                best = voice;
+            }
+        }
+        return best != null ? best : fallback;
+    }
+
+    private int scoreVoice(Voice voice) {
+        String name = voice.getName() == null ? "" : voice.getName().toLowerCase(Locale.US);
+        Locale locale = voice.getLocale();
+        int score = 0;
+        if (Locale.CHINA.getCountry().equals(locale.getCountry())) {
+            score += 20;
+        }
+        if (name.contains("xiao") || name.contains("miui") || name.contains("xiaomi")) {
+            score += 40;
+        }
+        if (name.contains("female") || name.contains("woman") || name.contains("girl")) {
+            score += 15;
+        }
+        if (name.contains("mandarin") || name.contains("putonghua") || name.contains("zh-cn")) {
+            score += 10;
+        }
+        if (voice.getQuality() >= Voice.QUALITY_HIGH) {
+            score += 8;
+        }
+        if (voice.getLatency() <= Voice.LATENCY_LOW) {
+            score += 4;
+        }
+        return score;
     }
 
     private void speak(String text) {
