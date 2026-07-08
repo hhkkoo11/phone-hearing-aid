@@ -317,6 +317,9 @@ public final class HearingEngine {
                 voiceProcessor.selfVoiceProfilePeakRatio);
         boolean boneQuietNoise = voiceProcessor.boneConductionNoiseControlEnabled
                 && frameSignature.averageAbs < 520.0f;
+        boolean nearSelfTalkFrame = reduceSelfVoice
+                && (profileMatched || voiceProcessor.isLikelyNearSelfTalk(frameSignature, gain));
+        float selfTalkDuck = voiceProcessor.updateSelfTalkDuck(nearSelfTalkFrame, gain);
         for (int i = 0; i < length; i++) {
             float input = buffer[i];
             if (enhanceVoice) {
@@ -366,6 +369,7 @@ public final class HearingEngine {
                 if (absInput < (farPickup ? 45.0f : 90.0f)) {
                     input *= 0.35f;
                 }
+                input *= selfTalkDuck;
             }
             int sample = Math.round(input * gain);
             if (sample > Short.MAX_VALUE) {
@@ -582,6 +586,7 @@ public final class HearingEngine {
         private float smoothedPresence;
         private float roomTail;
         private float highGainPrevious;
+        private float selfTalkDuck = 1.0f;
         private boolean selfVoiceProfileEnabled;
         private float selfVoiceProfileZcr;
         private float selfVoiceProfileDiffRatio;
@@ -620,6 +625,35 @@ public final class HearingEngine {
             highGainPrevious = transientPart;
             float clarity = gain >= 16.0f ? 0.18f : 0.11f;
             return transientPart + edge * clarity;
+        }
+
+        boolean isLikelyNearSelfTalk(VoiceSignature signature, float gain) {
+            if (!boneConductionNoiseControlEnabled) {
+                return gain >= 10.0f
+                        && signature.averageAbs > 1450.0f
+                        && signature.peakRatio < 20.0f
+                        && signature.diffRatio < 2.6f;
+            }
+            return signature.averageAbs > (gain >= 10.0f ? 520.0f : 760.0f)
+                    && signature.peakRatio < 18.0f
+                    && signature.diffRatio < 2.8f
+                    && signature.zeroCrossingRate < 0.30f;
+        }
+
+        float updateSelfTalkDuck(boolean nearSelfTalk, float gain) {
+            float target;
+            if (nearSelfTalk) {
+                if (boneConductionNoiseControlEnabled) {
+                    target = gain >= 10.0f ? 0.34f : 0.46f;
+                } else {
+                    target = gain >= 10.0f ? 0.52f : 0.68f;
+                }
+            } else {
+                target = 1.0f;
+            }
+            float speed = target < selfTalkDuck ? 0.58f : 0.08f;
+            selfTalkDuck += (target - selfTalkDuck) * speed;
+            return selfTalkDuck;
         }
     }
 
