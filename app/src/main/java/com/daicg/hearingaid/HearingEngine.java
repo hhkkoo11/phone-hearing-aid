@@ -52,6 +52,10 @@ public final class HearingEngine {
     private boolean farPickupEnabled = true;
     private boolean echoCancellationEnabled;
     private boolean selfVoiceReductionEnabled;
+    private boolean selfVoiceProfileEnabled;
+    private float selfVoiceProfileZcr;
+    private float selfVoiceProfileDiffRatio;
+    private float selfVoiceProfilePeakRatio;
     private boolean feedbackProtectionEnabled = true;
 
     public HearingEngine(Context context, Listener listener) {
@@ -95,6 +99,13 @@ public final class HearingEngine {
 
     public void setSelfVoiceReductionEnabled(boolean enabled) {
         this.selfVoiceReductionEnabled = enabled;
+    }
+
+    public void setSelfVoiceProfile(boolean enabled, float zcr, float diffRatio, float peakRatio) {
+        this.selfVoiceProfileEnabled = enabled;
+        this.selfVoiceProfileZcr = zcr;
+        this.selfVoiceProfileDiffRatio = diffRatio;
+        this.selfVoiceProfilePeakRatio = peakRatio;
     }
 
     public void setFeedbackProtectionEnabled(boolean enabled) {
@@ -228,7 +239,13 @@ public final class HearingEngine {
             }
 
             short[] buffer = new short[frameBuffer];
-            VoiceProcessor voiceProcessor = new VoiceProcessor(sampleRate, farPickupEnabled);
+            VoiceProcessor voiceProcessor = new VoiceProcessor(
+                    sampleRate,
+                    farPickupEnabled,
+                    selfVoiceProfileEnabled,
+                    selfVoiceProfileZcr,
+                    selfVoiceProfileDiffRatio,
+                    selfVoiceProfilePeakRatio);
             FeedbackGuard feedbackGuard = new FeedbackGuard();
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
@@ -286,6 +303,12 @@ public final class HearingEngine {
         long sum = 0L;
         int peak = 0;
         int limit = Math.round(Short.MAX_VALUE * outputLimit);
+        VoiceSignature frameSignature = VoiceSignature.fromSamples(buffer, length);
+        boolean profileMatched = voiceProcessor.selfVoiceProfileEnabled
+                && frameSignature.matches(
+                voiceProcessor.selfVoiceProfileZcr,
+                voiceProcessor.selfVoiceProfileDiffRatio,
+                voiceProcessor.selfVoiceProfilePeakRatio);
         for (int i = 0; i < length; i++) {
             float input = buffer[i];
             if (enhanceVoice) {
@@ -295,11 +318,12 @@ public final class HearingEngine {
                 if (farPickup && absInput > 45.0f && absInput < 2200.0f) {
                     input *= 1.45f;
                 }
-                float selfVoiceThreshold = farPickup
-                        ? FAR_SELF_VOICE_THRESHOLD
-                        : SELF_VOICE_THRESHOLD;
+                float selfVoiceThreshold = profileMatched
+                        ? (farPickup ? 980.0f : 760.0f)
+                        : (farPickup ? FAR_SELF_VOICE_THRESHOLD : SELF_VOICE_THRESHOLD);
                 if (reduceSelfVoice && absInput > selfVoiceThreshold) {
-                    input = softenNearLoudVoice(input, absInput, selfVoiceThreshold);
+                    float ratio = profileMatched ? 0.14f : SELF_VOICE_COMPRESS_RATIO;
+                    input = softenNearLoudVoice(input, absInput, selfVoiceThreshold, ratio);
                     absInput = Math.abs(input);
                 }
                 if (absInput < (farPickup ? 45.0f : 90.0f)) {
@@ -325,10 +349,22 @@ public final class HearingEngine {
         return level;
     }
 
-    private static float softenNearLoudVoice(float input, float absInput, float threshold) {
+    private static float softenNearLoudVoice(float input, float absInput, float threshold, float ratio) {
         float sign = input < 0.0f ? -1.0f : 1.0f;
-        float softened = threshold + ((absInput - threshold) * SELF_VOICE_COMPRESS_RATIO);
+        float softened = threshold + ((absInput - threshold) * ratio);
         return sign * softened;
+    }
+
+    public static float[] analyzeVoiceSignature(short[] samples, int length) {
+        VoiceSignature signature = VoiceSignature.fromSamples(samples, length);
+        if (signature.averageAbs < 120.0f || length < 8000) {
+            return null;
+        }
+        return new float[]{
+                signature.zeroCrossingRate,
+                signature.diffRatio,
+                signature.peakRatio
+        };
     }
 
     private static int compressAndLimit(int sample, int limit) {
@@ -491,8 +527,17 @@ public final class HearingEngine {
         private float previousOutput;
         private float previousPresenceInput;
         private float smoothedPresence;
+        private boolean selfVoiceProfileEnabled;
+        private float selfVoiceProfileZcr;
+        private float selfVoiceProfileDiffRatio;
+        private float selfVoiceProfilePeakRatio;
 
-        VoiceProcessor(int sampleRate, boolean farPickup) {
+        VoiceProcessor(int sampleRate, boolean farPickup, boolean profileEnabled,
+                float profileZcr, float profileDiffRatio, float profilePeakRatio) {
+            this.selfVoiceProfileEnabled = profileEnabled;
+            this.selfVoiceProfileZcr = profileZcr;
+            this.selfVoiceProfileDiffRatio = profileDiffRatio;
+            this.selfVoiceProfilePeakRatio = profilePeakRatio;
         }
 
         float highPass(float input) {
@@ -507,6 +552,62 @@ public final class HearingEngine {
             previousPresenceInput = input;
             smoothedPresence = smoothedPresence * 0.72f + edge * 0.28f;
             return input + smoothedPresence * 0.32f;
+        }
+    }
+
+    private static final class VoiceSignature {
+        private final float averageAbs;
+        private final float zeroCrossingRate;
+        private final float diffRatio;
+        private final float peakRatio;
+
+        private VoiceSignature(float averageAbs, float zeroCrossingRate,
+                float diffRatio, float peakRatio) {
+            this.averageAbs = averageAbs;
+            this.zeroCrossingRate = zeroCrossingRate;
+            this.diffRatio = diffRatio;
+            this.peakRatio = peakRatio;
+        }
+
+        static VoiceSignature fromSamples(short[] samples, int length) {
+            if (samples == null || length <= 1) {
+                return new VoiceSignature(0.0f, 0.0f, 0.0f, 0.0f);
+            }
+            long sumAbs = 0L;
+            long sumDiff = 0L;
+            int peak = 0;
+            int zeroCrossings = 0;
+            int previous = samples[0];
+            for (int i = 0; i < length; i++) {
+                int value = samples[i];
+                int abs = Math.abs(value);
+                sumAbs += abs;
+                if (abs > peak) {
+                    peak = abs;
+                }
+                if (i > 0) {
+                    sumDiff += Math.abs(value - previous);
+                    if ((value >= 0 && previous < 0) || (value < 0 && previous >= 0)) {
+                        zeroCrossings++;
+                    }
+                }
+                previous = value;
+            }
+            float averageAbs = sumAbs / (float) length;
+            float zeroCrossingRate = zeroCrossings / (float) (length - 1);
+            float diffRatio = sumDiff / Math.max(1.0f, sumAbs);
+            float peakRatio = peak / Math.max(1.0f, averageAbs);
+            return new VoiceSignature(averageAbs, zeroCrossingRate, diffRatio, peakRatio);
+        }
+
+        boolean matches(float profileZcr, float profileDiffRatio, float profilePeakRatio) {
+            if (averageAbs < 180.0f) {
+                return false;
+            }
+            float zcrDistance = Math.abs(zeroCrossingRate - profileZcr) / 0.075f;
+            float diffDistance = Math.abs(diffRatio - profileDiffRatio) / 0.55f;
+            float peakDistance = Math.abs(peakRatio - profilePeakRatio) / 3.5f;
+            return zcrDistance + diffDistance + peakDistance < 2.15f;
         }
     }
 

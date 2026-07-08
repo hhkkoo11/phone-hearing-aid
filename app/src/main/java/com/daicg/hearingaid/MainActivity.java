@@ -23,7 +23,9 @@ import android.media.AudioDeviceInfo;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
+import android.media.AudioRecord;
 import android.media.AudioTrack;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -88,6 +90,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private Switch farPickupSwitch;
     private Switch echoSwitch;
     private Switch selfVoiceSwitch;
+    private Switch voiceProfileSwitch;
     private Switch noiseSwitch;
     private Switch agcSwitch;
     private Switch autoMonitorSwitch;
@@ -187,6 +190,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         engine = new HearingEngine(this, this);
+        applySelfVoiceProfileToEngine();
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         textToSpeech = new TextToSpeech(this, status -> {
@@ -352,7 +356,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 2.9\uff1a\u4e91\u66f4\u65b0\u66f4\u7a33\u5b9a");
+        versionText.setText("\u7248\u672c 3.0\uff1a\u672c\u5730\u58f0\u7ebf\u8fc7\u6ee4\u5b9e\u9a8c");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -609,6 +613,18 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 selfVoiceReductionEnabled,
                 "\u84dd\u7259\u6a21\u5f0f\u9ed8\u8ba4\u6253\u5f00\uff1a\u538b\u4f4e\u4f7f\u7528\u8005\u81ea\u5df1\u8bf4\u8bdd\u7684\u6162\u56de\u58f0\uff0c\u522b\u4eba\u8d34\u8fd1\u624b\u673a\u8bf4\u8bdd\u4e5f\u53ef\u80fd\u4f1a\u5c0f\u4e00\u70b9\u3002",
                 this::setSelfVoiceReductionEnabled);
+
+        voiceProfileSwitch = addSettingSwitch(
+                content,
+                "\u672c\u4eba\u58f0\u7ebf\u8fc7\u6ee4\uff08\u5b9e\u9a8c\uff09",
+                AppSettings.selfVoiceProfileEnabled(this),
+                "\u5148\u5f55\u4e00\u6bb5\u4f7f\u7528\u8005\u81ea\u5df1\u8bf4\u8bdd\u7684\u6837\u672c\u3002\u6253\u5f00\u540e\uff0cApp \u4f1a\u5c1d\u8bd5\u538b\u4f4e\u76f8\u4f3c\u7684\u672c\u4eba\u58f0\u97f3\uff0c\u4f46\u53ef\u80fd\u8bef\u4f24\u58f0\u97f3\u5f88\u50cf\u7684\u4eba\u3002",
+                this::setSelfVoiceProfileEnabled);
+
+        Button trainSelfVoiceButton = makeSettingsButton("\u5f55\u5236\u672c\u4eba\u58f0\u97f3\u6837\u672c");
+        trainSelfVoiceButton.setOnClickListener(v -> showSelfVoiceTrainingDialog());
+        content.addView(trainSelfVoiceButton, matchWidthFixedHeight(48));
+        content.addView(makeHelpText("\u8ba9\u4f7f\u7528\u8005\u7528\u5e73\u65f6\u8bf4\u8bdd\u7684\u58f0\u97f3\u8bf4 3 \u79d2\uff0c\u6837\u672c\u53ea\u4fdd\u5b58\u5728\u8fd9\u53f0\u624b\u673a\uff0c\u4e0d\u4e0a\u4f20\u3002"), matchWidthWrapHeight());
 
         wiredAutoStartSwitch = addSettingSwitch(
                 content,
@@ -1356,6 +1372,124 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSwitchChecked(selfVoiceSwitch, enabled);
     }
 
+    private void setSelfVoiceProfileEnabled(boolean enabled) {
+        if (enabled && !AppSettings.hasSelfVoiceProfile(this)) {
+            toast("\u8bf7\u5148\u5f55\u5236\u672c\u4eba\u58f0\u97f3\u6837\u672c");
+            setSwitchChecked(voiceProfileSwitch, false);
+            return;
+        }
+        AppSettings.prefs(this).edit()
+                .putBoolean(AppSettings.KEY_SELF_VOICE_PROFILE_ENABLED, enabled)
+                .apply();
+        applySelfVoiceProfileToEngine();
+        setSwitchChecked(voiceProfileSwitch, enabled);
+        if (enabled) {
+            setSelfVoiceReductionEnabled(true);
+        }
+    }
+
+    private void applySelfVoiceProfileToEngine() {
+        boolean enabled = AppSettings.selfVoiceProfileEnabled(this)
+                && AppSettings.hasSelfVoiceProfile(this);
+        engine.setSelfVoiceProfile(
+                enabled,
+                AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_ZCR, 0.0f),
+                AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_DIFF, 0.0f),
+                AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_PEAK, 0.0f));
+    }
+
+    private void showSelfVoiceTrainingDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("\u5f55\u5236\u672c\u4eba\u58f0\u97f3\u6837\u672c")
+                .setMessage("\u8bf7\u8ba9\u4f7f\u7528\u8005\u62ff\u7740\u5e73\u65f6\u7684\u8ddd\u79bb\uff0c\u7528\u6b63\u5e38\u8bf4\u8bdd\u97f3\u91cf\u8fde\u7eed\u8bf4 3 \u79d2\u3002\n\n"
+                        + "\u5efa\u8bae\u8bf4\uff1a\u201c\u6211\u73b0\u5728\u5728\u5f55\u5236\u81ea\u5df1\u7684\u58f0\u97f3\u6837\u672c\u201d\u3002\n\n"
+                        + "\u6837\u672c\u53ea\u4fdd\u5b58\u6210\u672c\u5730\u7279\u5f81\uff0c\u4e0d\u4fdd\u5b58\u539f\u59cb\u5f55\u97f3\uff0c\u4e0d\u4e0a\u4f20\u3002")
+                .setNegativeButton("\u53d6\u6d88", null)
+                .setPositiveButton("\u5f00\u59cb\u5f55\u5236", (dialog, which) -> recordSelfVoiceProfile())
+                .show();
+    }
+
+    private void recordSelfVoiceProfile() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_AUDIO_PERMISSIONS);
+            toast("\u8bf7\u5148\u5141\u8bb8\u9ea6\u514b\u98ce\u6743\u9650\uff0c\u7136\u540e\u518d\u5f55\u5236\u6837\u672c");
+            return;
+        }
+        if (engine.isRunning()) {
+            engine.stop();
+            setRunningUi(false);
+        }
+        toast("\u5f00\u59cb\u5f55\u5236\uff0c\u8bf7\u8bf4\u8bdd 3 \u79d2");
+        new Thread(() -> {
+            int sampleRate = 16000;
+            int channel = AudioFormat.CHANNEL_IN_MONO;
+            int encoding = AudioFormat.ENCODING_PCM_16BIT;
+            int minBuffer = AudioRecord.getMinBufferSize(sampleRate, channel, encoding);
+            if (minBuffer <= 0) {
+                runOnUiThread(() -> toast("\u8fd9\u53f0\u624b\u673a\u6682\u4e0d\u652f\u6301\u5f55\u5236\u58f0\u7ebf\u6837\u672c"));
+                return;
+            }
+            int targetSamples = sampleRate * 3;
+            short[] samples = new short[targetSamples];
+            short[] buffer = new short[Math.max(minBuffer / 2, 512)];
+            AudioRecord record = null;
+            int written = 0;
+            try {
+                record = new AudioRecord.Builder()
+                        .setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION)
+                        .setAudioFormat(new AudioFormat.Builder()
+                                .setSampleRate(sampleRate)
+                                .setEncoding(encoding)
+                                .setChannelMask(channel)
+                                .build())
+                        .setBufferSizeInBytes(Math.max(minBuffer, 2048))
+                        .build();
+                if (record.getState() != AudioRecord.STATE_INITIALIZED) {
+                    throw new IllegalStateException("\u5f55\u97f3\u521d\u59cb\u5316\u5931\u8d25");
+                }
+                record.startRecording();
+                long endAt = System.currentTimeMillis() + 3600L;
+                while (written < targetSamples && System.currentTimeMillis() < endAt) {
+                    int read = record.read(buffer, 0, buffer.length, AudioRecord.READ_BLOCKING);
+                    if (read <= 0) {
+                        continue;
+                    }
+                    int copy = Math.min(read, targetSamples - written);
+                    System.arraycopy(buffer, 0, samples, written, copy);
+                    written += copy;
+                }
+                float[] signature = HearingEngine.analyzeVoiceSignature(samples, written);
+                if (signature == null) {
+                    runOnUiThread(() -> toast("\u6837\u672c\u592a\u5c0f\u58f0\u6216\u592a\u77ed\uff0c\u8bf7\u9760\u8fd1\u4e00\u70b9\u91cd\u65b0\u5f55"));
+                    return;
+                }
+                AppSettings.prefs(this).edit()
+                        .putFloat(AppSettings.KEY_SELF_VOICE_PROFILE_ZCR, signature[0])
+                        .putFloat(AppSettings.KEY_SELF_VOICE_PROFILE_DIFF, signature[1])
+                        .putFloat(AppSettings.KEY_SELF_VOICE_PROFILE_PEAK, signature[2])
+                        .putBoolean(AppSettings.KEY_SELF_VOICE_PROFILE_ENABLED, true)
+                        .apply();
+                runOnUiThread(() -> {
+                    applySelfVoiceProfileToEngine();
+                    setSwitchChecked(voiceProfileSwitch, true);
+                    setSelfVoiceReductionEnabled(true);
+                    toast("\u672c\u4eba\u58f0\u7ebf\u6837\u672c\u5df2\u4fdd\u5b58\uff0c\u5df2\u5f00\u542f\u5b9e\u9a8c\u8fc7\u6ee4");
+                    speak("\u58f0\u97f3\u6837\u672c\u5df2\u4fdd\u5b58");
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> toast("\u5f55\u5236\u6837\u672c\u5931\u8d25"));
+            } finally {
+                if (record != null) {
+                    try {
+                        record.stop();
+                    } catch (Exception ignored) {
+                    }
+                    record.release();
+                }
+            }
+        }, "SelfVoiceTraining").start();
+    }
+
     private void setNoiseSuppressionEnabled(boolean enabled) {
         noiseSuppressionEnabled = enabled;
         engine.setNoiseSuppressionEnabled(enabled);
@@ -1430,7 +1564,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
         setEchoCancellationEnabled(false);
-        setSelfVoiceReductionEnabled(false);
+        setSelfVoiceReductionEnabled(AppSettings.selfVoiceProfileEnabled(this)
+                && AppSettings.hasSelfVoiceProfile(this));
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(5.0f);

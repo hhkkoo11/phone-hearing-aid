@@ -14,6 +14,10 @@ final class AppSettings {
     static final String KEY_AUTO_LISTEN_PAUSED = "auto_listen_paused";
     static final String KEY_SETUP_HINT_SHOWN = "setup_hint_shown";
     static final String KEY_LAST_PERMISSION_CHECK_PROMPT_AT = "last_permission_check_prompt_at";
+    static final String KEY_SELF_VOICE_PROFILE_ENABLED = "self_voice_profile_enabled";
+    static final String KEY_SELF_VOICE_PROFILE_ZCR = "self_voice_profile_zcr";
+    static final String KEY_SELF_VOICE_PROFILE_DIFF = "self_voice_profile_diff";
+    static final String KEY_SELF_VOICE_PROFILE_PEAK = "self_voice_profile_peak";
 
     static final String MODE_BLUETOOTH_DAILY = "bluetooth_daily";
     static final String MODE_WIRED_INDOOR = "wired_indoor";
@@ -53,5 +57,15 @@ final class AppSettings {
 
     static String sceneMode(Context context) {
         return prefs(context).getString(KEY_SCENE_MODE, MODE_BLUETOOTH_DAILY);
+    }
+
+    static boolean selfVoiceProfileEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_SELF_VOICE_PROFILE_ENABLED, false);
+    }
+
+    static boolean hasSelfVoiceProfile(Context context) {
+        return prefs(context).contains(KEY_SELF_VOICE_PROFILE_ZCR)
+                && prefs(context).contains(KEY_SELF_VOICE_PROFILE_DIFF)
+                && prefs(context).contains(KEY_SELF_VOICE_PROFILE_PEAK);
     }
 }

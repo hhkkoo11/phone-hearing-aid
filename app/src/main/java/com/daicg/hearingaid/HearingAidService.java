@@ -95,13 +95,16 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     private void applySavedMode() {
         String mode = AppSettings.sceneMode(this);
+        applySelfVoiceProfile();
+        boolean profileEnabled = AppSettings.selfVoiceProfileEnabled(this)
+                && AppSettings.hasSelfVoiceProfile(this);
         if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
             engine.setGain(5.0f);
             engine.setOutputLimit(0.78f);
             engine.setVoiceEnhancementEnabled(true);
             engine.setFarPickupEnabled(false);
             engine.setEchoCancellationEnabled(false);
-            engine.setSelfVoiceReductionEnabled(false);
+            engine.setSelfVoiceReductionEnabled(profileEnabled);
             engine.setNoiseSuppressionEnabled(true);
             engine.setAutomaticGainEnabled(false);
         } else if (AppSettings.MODE_POCKET.equals(mode)) {
@@ -133,5 +136,15 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setAutomaticGainEnabled(false);
         }
         engine.setFeedbackProtectionEnabled(true);
+    }
+
+    private void applySelfVoiceProfile() {
+        boolean enabled = AppSettings.selfVoiceProfileEnabled(this)
+                && AppSettings.hasSelfVoiceProfile(this);
+        engine.setSelfVoiceProfile(
+                enabled,
+                AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_ZCR, 0.0f),
+                AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_DIFF, 0.0f),
+                AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_PEAK, 0.0f));
     }
 }
