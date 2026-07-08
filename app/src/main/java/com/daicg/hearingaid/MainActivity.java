@@ -325,7 +325,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 1.5\uff1a\u5df2\u52a0\u4f7f\u7528\u6559\u7a0b");
+        versionText.setText("\u7248\u672c 1.6\uff1a\u5df2\u52a0\u516c\u76ca\u8bf4\u660e");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -429,6 +429,14 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         levelMeter.setMax(100);
         root.addView(levelMeter, matchWidthFixedHeight(22));
         root.addView(makeHelpText("\u8f93\u5165\u7535\u5e73\uff1a\u8fd9\u6761\u662f\u624b\u673a\u9ea6\u514b\u98ce\u73b0\u5728\u6536\u5230\u7684\u58f0\u97f3\u5927\u5c0f\uff0c\u4e0d\u662f\u8033\u673a\u97f3\u91cf\u3002"), matchWidthWrapHeight());
+
+        TextView footerText = new TextView(this);
+        footerText.setText("\u795d\u60a8\u4f7f\u7528\u987a\u5229\uff0c\u5982\u679c\u4f7f\u7528\u4e2d\u9047\u5230\u95ee\u9898\uff0c\u8bf7\u8054\u7cfb\u6211\u3002\u8f6f\u4ef6\u6c38\u4e45\u514d\u8d39\uff0c\u80fd\u5e2e\u52a9\u5230\u60a8\u662f\u6211\u7684\u8363\u5e78\u3002");
+        footerText.setTextSize(14);
+        footerText.setTextColor(0xFF5A6B66);
+        footerText.setGravity(Gravity.CENTER);
+        footerText.setPadding(0, dp(28), 0, dp(12));
+        root.addView(footerText, matchWidthWrapHeight());
 
         scrollView.addView(root);
         setContentView(scrollView);

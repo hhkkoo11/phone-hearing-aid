@@ -1,6 +1,6 @@
 {
-  "versionCode": 6,
-  "versionName": "1.5",
+  "versionCode": 7,
+  "versionName": "1.6",
   "apkUrl": "https://github.com/hhkkoo11/phone-hearing-aid/releases/latest/download/hearing-aid-app.apk",
-  "notes": "新增使用教程，主页面移除长提示，教程用大白话说明自动增益、重度模式、远距离收声和啸叫处理。"
+  "notes": "主页面底部新增公益说明和联系提醒。"
 }
