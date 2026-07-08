@@ -298,16 +298,24 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.setGravity(Gravity.CENTER_HORIZONTAL);
         root.setBackgroundColor(0xFFF5F7F6);
 
+        LinearLayout topActions = new LinearLayout(this);
+        topActions.setOrientation(LinearLayout.HORIZONTAL);
+        topActions.setGravity(Gravity.RIGHT);
+
+        Button tutorialButton = new Button(this);
+        tutorialButton.setText("\u6559\u7a0b");
+        tutorialButton.setTextSize(15);
+        tutorialButton.setAllCaps(false);
+        tutorialButton.setOnClickListener(v -> showTutorialDialog());
+        topActions.addView(tutorialButton, weightedButtonParams());
+
         Button settingsButton = new Button(this);
         settingsButton.setText("\u8bbe\u7f6e");
         settingsButton.setTextSize(15);
         settingsButton.setAllCaps(false);
         settingsButton.setOnClickListener(v -> showSettingsDialog());
-        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(
-                dp(112),
-                dp(44));
-        settingsParams.gravity = Gravity.RIGHT;
-        root.addView(settingsButton, settingsParams);
+        topActions.addView(settingsButton, weightedButtonParams());
+        root.addView(topActions, matchWidthFixedHeight(46));
 
         statusText = new TextView(this);
         statusText.setTextSize(16);
@@ -317,7 +325,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 1.4\uff1a\u81ea\u52a8\u8bc6\u522b\u8033\u673a");
+        versionText.setText("\u7248\u672c 1.5\uff1a\u5df2\u52a0\u4f7f\u7528\u6559\u7a0b");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -422,13 +430,6 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(levelMeter, matchWidthFixedHeight(22));
         root.addView(makeHelpText("\u8f93\u5165\u7535\u5e73\uff1a\u8fd9\u6761\u662f\u624b\u673a\u9ea6\u514b\u98ce\u73b0\u5728\u6536\u5230\u7684\u58f0\u97f3\u5927\u5c0f\uff0c\u4e0d\u662f\u8033\u673a\u97f3\u91cf\u3002"), matchWidthWrapHeight());
 
-        TextView hint = new TextView(this);
-        hint.setText("\u5efa\u8bae\u5148\u5f00\u91cd\u5ea6\u8033\u80cc\u6a21\u5f0f\u548c\u8fdc\u8ddd\u79bb\u6536\u58f0\uff0c\u518d\u6162\u6162\u8c03\u589e\u76ca\u3002\u5982\u679c\u51fa\u73b0\u5578\u53eb\uff0c\u5148\u964d\u4f4e\u589e\u76ca\u6216\u5173\u95ed\u8fdc\u8ddd\u79bb\u6536\u58f0\u3002");
-        hint.setTextSize(14);
-        hint.setTextColor(0xFF5A6B66);
-        hint.setPadding(0, dp(24), 0, 0);
-        root.addView(hint, matchWidthWrapHeight());
-
         scrollView.addView(root);
         setContentView(scrollView);
         applyAutoRouteMode(false);
@@ -462,6 +463,43 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         view.setTextColor(0xFF66736F);
         view.setPadding(0, dp(4), 0, dp(6));
         return view;
+    }
+
+    private void showTutorialDialog() {
+        int pad = dp(18);
+        ScrollView scrollView = new ScrollView(this);
+        TextView text = new TextView(this);
+        text.setTextSize(16);
+        text.setTextColor(0xFF10231F);
+        text.setLineSpacing(dp(3), 1.05f);
+        text.setPadding(pad, dp(6), pad, dp(10));
+        text.setText(
+                "\u4e00\u3001\u6700\u7b80\u5355\u7684\u7528\u6cd5\n"
+                        + "1. \u5148\u8fde\u4e0a\u8033\u673a\u3002\u84dd\u7259\u548c\u6709\u7ebf\u90fd\u53ef\u4ee5\uff0cApp \u4f1a\u81ea\u52a8\u8bc6\u522b\u3002\n"
+                        + "2. \u70b9\u201c\u5f00\u59cb\u52a9\u542c\u201d\u3002\n"
+                        + "3. \u542c\u4e0d\u6e05\u5c31\u6309 +\uff0c\u89c9\u5f97\u523a\u8033\u5c31\u6309 -\u3002\n\n"
+                        + "\u4e8c\u3001\u81ea\u52a8\u589e\u76ca\u662f\u4ec0\u4e48\n"
+                        + "\u5b83\u5c31\u50cf\u201c\u81ea\u52a8\u8ffd\u97f3\u91cf\u201d\u3002\u522b\u4eba\u8bf4\u8bdd\u5c0f\uff0c\u5b83\u4f1a\u5e2e\u4f60\u62ac\u9ad8\uff1b\u58f0\u97f3\u592a\u5927\uff0c\u5b83\u4f1a\u5c3d\u91cf\u538b\u4f4f\u3002\n"
+                        + "\u6700\u76f4\u89c2\u7684\u6548\u679c\uff1a\u5c0f\u58f0\u66f4\u5bb9\u6613\u542c\u89c1\u3002\n"
+                        + "\u526f\u4f5c\u7528\uff1a\u7a7a\u8c03\u58f0\u3001\u98ce\u58f0\u3001\u8863\u670d\u6469\u64e6\u58f0\u4e5f\u53ef\u80fd\u88ab\u653e\u5927\u3002\u89c9\u5f97\u6742\u97f3\u591a\uff0c\u5c31\u5173\u6389\u5b83\u3002\n\n"
+                        + "\u4e09\u3001\u91cd\u5ea6\u8033\u80cc\u600e\u4e48\u8c03\n"
+                        + "\u5982\u679c\u542c\u529b\u4e0b\u964d\u6bd4\u8f83\u91cd\uff0c\u53ef\u4ee5\u6253\u5f00\u201c\u91cd\u5ea6\u8033\u80cc\u6a21\u5f0f\u201d\u3002\n"
+                        + "\u7136\u540e\u4e00\u70b9\u70b9\u6309 +\uff0c\u4e0d\u8981\u4e00\u4e0b\u5b50\u62c9\u5230\u6700\u5927\u3002\n"
+                        + "\u5982\u679c\u8fd8\u662f\u542c\u4e0d\u6e05\uff0c\u518d\u6253\u5f00\u201c\u8fdc\u8ddd\u79bb\u6536\u58f0\u201d\u3002\n\n"
+                        + "\u56db\u3001\u5578\u53eb\u600e\u4e48\u529e\n"
+                        + "\u5578\u53eb\u5c31\u662f\u8033\u673a\u91cc\u51fa\u73b0\u5c16\u53eb\u6216\u523a\u8033\u7684\u58f0\u97f3\u3002\n"
+                        + "\u9047\u5230\u5578\u53eb\uff1a\u5148\u6309 - \u964d\u4f4e\u589e\u76ca\uff1b\u8fd8\u6709\u5578\u53eb\uff0c\u5173\u6389\u201c\u8fdc\u8ddd\u79bb\u6536\u58f0\u201d\uff1b\u518d\u4e0d\u884c\u5c31\u505c\u6b62\u52a9\u542c\u3002\n\n"
+                        + "\u4e94\u3001\u53e3\u888b\u6a21\u5f0f\u4ec0\u4e48\u65f6\u5019\u7528\n"
+                        + "\u624b\u673a\u653e\u53e3\u888b\u91cc\u65f6\u518d\u7528\u3002\u5b83\u4f1a\u51cf\u5c11\u8fdc\u8ddd\u79bb\u6536\u58f0\uff0c\u5c3d\u91cf\u538b\u4f4e\u8863\u670d\u6469\u64e6\u548c\u95f7\u58f0\u3002\n"
+                        + "\u624b\u673a\u653e\u684c\u4e0a\u6216\u62ff\u5728\u624b\u91cc\u65f6\uff0c\u4e00\u822c\u4e0d\u9700\u8981\u5f00\u3002\n\n"
+                        + "\u516d\u3001\u5b89\u5168\u63d0\u9192\n"
+                        + "\u542c\u5230\u523a\u8033\u3001\u8033\u75db\u3001\u5934\u6655\uff0c\u7acb\u523b\u6309 - \u6216\u505c\u6b62\u4f7f\u7528\u3002\u8fd9\u4e2a App \u662f\u52a9\u542c\u8f85\u52a9\uff0c\u4e0d\u80fd\u4ee3\u66ff\u533b\u9662\u68c0\u67e5\u548c\u4e13\u4e1a\u52a9\u542c\u5668\u9a8c\u914d\u3002");
+        scrollView.addView(text);
+        new AlertDialog.Builder(this)
+                .setTitle("\u4f7f\u7528\u6559\u7a0b")
+                .setView(scrollView)
+                .setPositiveButton("\u77e5\u9053\u4e86", null)
+                .show();
     }
 
     private void showSettingsDialog() {

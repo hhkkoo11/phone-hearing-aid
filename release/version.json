@@ -1,6 +1,6 @@
 {
-  "versionCode": 5,
-  "versionName": "1.4",
+  "versionCode": 6,
+  "versionName": "1.5",
   "apkUrl": "https://github.com/hhkkoo11/phone-hearing-aid/releases/latest/download/hearing-aid-app.apk",
-  "notes": "蓝牙/有线模式改为自动识别，语音播报改成更像机器提示音，连续调音量不重复播报。"
+  "notes": "新增使用教程，主页面移除长提示，教程用大白话说明自动增益、重度模式、远距离收声和啸叫处理。"
 }
