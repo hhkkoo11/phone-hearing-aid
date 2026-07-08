@@ -55,8 +55,13 @@ public final class HeadsetMonitorService extends Service {
     public void onCreate() {
         super.onCreate();
         NotificationHelper.ensureChannels(this);
-        startForeground(NotificationHelper.MONITOR_NOTIFICATION_ID,
-                NotificationHelper.monitorNotification(this));
+        try {
+            startForeground(NotificationHelper.MONITOR_NOTIFICATION_ID,
+                    NotificationHelper.monitorNotification(this));
+        } catch (RuntimeException exception) {
+            stopSelf();
+            return;
+        }
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, null);
         registerReceiver(receiver, routeFilter());
