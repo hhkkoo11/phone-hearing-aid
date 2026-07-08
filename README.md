@@ -56,6 +56,14 @@ gradle assembleDebug
 adb install -r app\build\outputs\apk\debug\app-debug.apk
 ```
 
+同步安装到所有已连接设备：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-all-devices.ps1
+```
+
+脚本会自动读取 `adb devices` 里所有在线设备并逐台安装。部分手机会弹出“允许安装”或“安装”确认，需要在手机屏幕上点确认。
+
 ## 云端更新配置
 
 App 会读取代码中的 `UPDATE_JSON_URL`。云端 JSON 格式参考：
