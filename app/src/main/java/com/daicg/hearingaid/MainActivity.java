@@ -53,7 +53,8 @@ import java.util.Locale;
 
 public final class MainActivity extends Activity implements HearingEngine.Listener {
     private static final int REQUEST_AUDIO_PERMISSIONS = 1001;
-    private static final String UPDATE_JSON_URL = "https://example.com/hearing-aid/version.json";
+    private static final String UPDATE_JSON_URL =
+            "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/version.json";
     private static volatile boolean visible;
 
     private HearingEngine engine;
