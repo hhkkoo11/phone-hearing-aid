@@ -66,9 +66,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private static final String OFFICIAL_REPOSITORY_URL =
             "https://github.com/hhkkoo11/phone-hearing-aid";
     private static final String[] UPDATE_JSON_URLS = {
+            "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/version.json",
             "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/version.json",
-            "https://github.com/hhkkoo11/phone-hearing-aid/raw/refs/heads/main/release/version.json",
-            "https://cdn.jsdelivr.net/gh/hhkkoo11/phone-hearing-aid@main/release/version.json"
+            "https://github.com/hhkkoo11/phone-hearing-aid/raw/refs/heads/main/release/version.json"
     };
     private static volatile boolean visible;
 
@@ -357,7 +357,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 3.5\uff1a\u9aa8\u4f20\u5bfc\u672c\u4eba\u8bf4\u8bdd\u538b\u4f4e");
+        versionText.setText("\u7248\u672c 3.6\uff1a\u9aa8\u4f20\u5bfc\u672c\u4eba\u8bf4\u8bdd\u538b\u4f4e");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
