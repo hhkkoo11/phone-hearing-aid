@@ -33,6 +33,7 @@ public final class CallAssistReceiver extends BroadcastReceiver {
                 .apply();
         HearingAidService.stop(context);
         setVoiceCallVolumeMax(context);
+        CallAudioEnhancer.enable();
     }
 
     static void handleCallEnded(Context context) {
@@ -48,6 +49,7 @@ public final class CallAssistReceiver extends BroadcastReceiver {
                 && hasAnyHeadsetOutput(context)) {
             HearingAidService.start(context);
         }
+        CallAudioEnhancer.disable();
     }
 
     static void setVoiceCallVolumeMax(Context context) {

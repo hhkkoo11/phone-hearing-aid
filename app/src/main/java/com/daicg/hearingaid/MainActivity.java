@@ -396,7 +396,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 5.1\uff1a\u9aa8\u4f20\u5bfc\u6237\u5916\u5f3a\u8fc7\u6ee4\uff0c\u4eba\u58f0\u4f18\u5148");
+        versionText.setText("\u7248\u672c 5.2\uff1a\u901a\u8bdd\u65f6\u5c1d\u8bd5\u589e\u5f3a\u4eba\u58f0");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -815,7 +815,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 content,
                 "\u6253\u7535\u8bdd\u65f6\u653e\u5927",
                 AppSettings.callAssistEnabled(this),
-                "\u6765\u7535\u6216\u901a\u8bdd\u65f6\uff0c\u81ea\u52a8\u628a\u7cfb\u7edf\u901a\u8bdd\u97f3\u91cf\u8c03\u5230\u6700\u5927\uff0c\u5e76\u6682\u505c\u666e\u901a\u52a9\u542c\u6536\u97f3\uff0c\u51cf\u5c11\u56de\u58f0\u548c\u5578\u53eb\u3002",
+                "\u6765\u7535\u6216\u901a\u8bdd\u65f6\uff0c\u81ea\u52a8\u628a\u7cfb\u7edf\u901a\u8bdd\u97f3\u91cf\u8c03\u5230\u6700\u5927\uff0c\u5e76\u5c3d\u91cf\u538b\u4f4e\u4f4e\u9891\u6742\u97f3\u3001\u63d0\u9ad8\u4eba\u58f0\u6e05\u6670\u5ea6\u3002",
                 isChecked -> {
                     AppSettings.prefs(this).edit()
                             .putBoolean(AppSettings.KEY_CALL_ASSIST, isChecked)
@@ -823,6 +823,11 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                     if (isChecked) {
                         requestSetupPermissions();
                         CallAssistReceiver.setVoiceCallVolumeMax(this);
+                        if (AppSettings.callActive(this)) {
+                            CallAudioEnhancer.enable();
+                        }
+                    } else {
+                        CallAudioEnhancer.disable();
                     }
                 });
 

@@ -71,6 +71,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         }
         if (AppSettings.callActive(this)) {
             CallAssistReceiver.setVoiceCallVolumeMax(this);
+            CallAudioEnhancer.enable();
             stopSelf();
             return;
         }
@@ -86,6 +87,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         }
         if (AppSettings.callActive(this)) {
             CallAssistReceiver.setVoiceCallVolumeMax(this);
+            CallAudioEnhancer.enable();
             stopSelf();
             return START_NOT_STICKY;
         }
