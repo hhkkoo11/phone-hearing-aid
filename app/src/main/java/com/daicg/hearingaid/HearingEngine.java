@@ -74,7 +74,7 @@ public final class HearingEngine {
     }
 
     public void setGain(float gain) {
-        this.gain = Math.max(0.2f, Math.min(gain, 72.0f));
+        this.gain = Math.max(0.2f, Math.min(gain, 120.0f));
     }
 
     public void setOutputLimit(float outputLimit) {
@@ -333,16 +333,16 @@ public final class HearingEngine {
                 if (farPickup && absInput > 70.0f && absInput < 2200.0f) {
                     input *= 1.45f;
                     absInput = Math.abs(input);
-                } else if (!farPickup && absInput > 95.0f && absInput < 2600.0f) {
-                    input *= 1.35f;
+                } else if (!farPickup && absInput > 55.0f && absInput < 3600.0f) {
+                    input *= 2.15f;
                     absInput = Math.abs(input);
                 }
                 if (longRangePickup && absInput > 45.0f && absInput < 1800.0f) {
                     input *= 1.22f;
                     absInput = Math.abs(input);
                 }
-                if (absInput < (farPickup ? 45.0f : 90.0f)) {
-                    input *= 0.35f;
+                if (absInput < (farPickup ? 45.0f : 55.0f)) {
+                    input *= 0.55f;
                 }
             }
             int sample = Math.round(input * gain);
@@ -383,7 +383,7 @@ public final class HearingEngine {
     }
 
     private static int compressAndLimit(int sample, int limit) {
-        return compressAndLimit(sample, limit, 0.70f, 0.25f);
+        return compressAndLimit(sample, limit, 0.52f, 0.45f);
     }
 
     private static int compressAndLimit(int sample, int limit, float kneeRatio, float overKneeRatio) {
@@ -644,14 +644,14 @@ public final class HearingEngine {
         float environmentGate(float absInput, boolean outdoorPickup) {
             float learnSpeed = absInput < environmentFloor * 3.0f ? 0.015f : 0.002f;
             environmentFloor += (absInput - environmentFloor) * learnSpeed;
-            float quiet = Math.max(outdoorPickup ? 95.0f : 70.0f, environmentFloor * 1.35f);
-            float speechStart = Math.max(outdoorPickup ? 300.0f : 240.0f, environmentFloor * 3.4f);
+            float quiet = Math.max(outdoorPickup ? 95.0f : 45.0f, environmentFloor * (outdoorPickup ? 1.35f : 0.75f));
+            float speechStart = Math.max(outdoorPickup ? 300.0f : 120.0f, environmentFloor * (outdoorPickup ? 3.4f : 1.65f));
             if (absInput < quiet) {
-                return outdoorPickup ? 0.12f : 0.18f;
+                return outdoorPickup ? 0.12f : 0.55f;
             }
             if (absInput < speechStart) {
                 float t = (absInput - quiet) / Math.max(1.0f, speechStart - quiet);
-                return (outdoorPickup ? 0.22f : 0.30f) + t * 0.58f;
+                return (outdoorPickup ? 0.22f : 0.72f) + t * (outdoorPickup ? 0.58f : 0.28f);
             }
             return 1.0f;
         }
