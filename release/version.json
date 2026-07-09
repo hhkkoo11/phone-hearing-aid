@@ -1,7 +1,7 @@
 {
-  "versionCode": 30,
-  "versionName": "3.9",
+  "versionCode": 31,
+  "versionName": "4.0",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "后台稳定性和增益修复：默认增益改为 5x，用户调好的增益会保存，切回主页、重新打开或后台服务重启后不再跳到 20x/12x；开始助听后由前台服务持续运行，划掉界面、切回主屏、息屏时尽量继续收音；骨传导本人说话压低更积极，减少自己的声音慢半拍和怪异感。云更新不强制。"
+  "notes": "骨传导近距离电流声抑制：当手机和骨传导耳机靠得太近，检测到稳定底噪/串扰时会更强压低，并避免 5 米远距收声把这种电流声当作小声人声放大；教程新增提醒，手机和耳机尽量隔开 30 厘米以上。云更新不强制。"
 }

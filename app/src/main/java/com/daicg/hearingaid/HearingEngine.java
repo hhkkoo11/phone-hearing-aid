@@ -323,6 +323,7 @@ public final class HearingEngine {
                 voiceProcessor.selfVoiceProfilePeakRatio);
         boolean boneQuietNoise = voiceProcessor.boneConductionNoiseControlEnabled
                 && frameSignature.averageAbs < 520.0f;
+        boolean proximityBuzzFrame = voiceProcessor.isLikelyProximityBuzz(frameSignature, gain);
         boolean nearSelfTalkFrame = reduceSelfVoice
                 && (profileMatched || voiceProcessor.isLikelyNearSelfTalk(frameSignature, gain));
         float selfTalkDuck = voiceProcessor.updateSelfTalkDuck(nearSelfTalkFrame, gain);
@@ -336,6 +337,10 @@ public final class HearingEngine {
                 }
                 float absInput = Math.abs(input);
                 if (voiceProcessor.boneConductionNoiseControlEnabled) {
+                    if (proximityBuzzFrame) {
+                        input *= 0.18f;
+                        absInput = Math.abs(input);
+                    }
                     if (absInput < 260.0f) {
                         input *= 0.12f;
                     } else if (absInput < 620.0f) {
@@ -354,7 +359,7 @@ public final class HearingEngine {
                     }
                     absInput = Math.abs(input);
                 }
-                if (longRangePickup && absInput > 18.0f && absInput < 1450.0f) {
+                if (longRangePickup && !proximityBuzzFrame && absInput > 18.0f && absInput < 1450.0f) {
                     float longRangeBoost;
                     if (absInput < 180.0f) {
                         longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled ? 1.95f : 2.25f;
@@ -387,7 +392,7 @@ public final class HearingEngine {
                     input *= voiceProcessor.boneConductionNoiseControlEnabled ? 0.50f : 0.62f;
                     absInput = Math.abs(input);
                 }
-                float quietGate = longRangePickup ? 22.0f : (farPickup ? 45.0f : 90.0f);
+                float quietGate = longRangePickup && !proximityBuzzFrame ? 22.0f : (farPickup ? 45.0f : 90.0f);
                 if (absInput < quietGate) {
                     input *= longRangePickup ? 0.22f : 0.35f;
                 }
@@ -660,6 +665,18 @@ public final class HearingEngine {
                     && signature.peakRatio < 18.0f
                     && signature.diffRatio < 2.8f
                     && signature.zeroCrossingRate < 0.30f;
+        }
+
+        boolean isLikelyProximityBuzz(VoiceSignature signature, float gain) {
+            if (!boneConductionNoiseControlEnabled) {
+                return false;
+            }
+            float upperAverage = gain >= 10.0f ? 980.0f : 760.0f;
+            return signature.averageAbs > 120.0f
+                    && signature.averageAbs < upperAverage
+                    && signature.diffRatio < 1.15f
+                    && signature.peakRatio < 8.5f
+                    && signature.zeroCrossingRate < 0.18f;
         }
 
         float updateSelfTalkDuck(boolean nearSelfTalk, float gain) {
