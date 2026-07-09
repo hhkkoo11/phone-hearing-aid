@@ -330,7 +330,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7ecf\u5178\u7248 3.1\uff1a\u4e0d\u9ed8\u8ba4\u538b\u4f4e\u4eba\u58f0");
+        versionText.setText("\u7ecf\u5178\u7248 3.2\uff1a\u8fdc\u8ddd\u79bb\u6536\u58f0");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -367,7 +367,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(gainText, matchWidthWrapHeight());
 
         gainSeek = new SeekBar(this);
-        gainSeek.setMax(638);
+        gainSeek.setMax(718);
         gainSeek.setProgress(18);
         gainSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -417,7 +417,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         maxButton.setAllCaps(false);
         maxButton.setOnClickListener(v -> {
             engine.setOutputLimit(0.96f);
-            setGainProgressForValue(64.0f);
+            setGainProgressForValue(72.0f);
             toast("\u5df2\u5230\u6700\u5927\u6863\uff0c\u8bf7\u6ce8\u610f\u9632\u6b62\u5578\u53eb\u548c\u8033\u75db");
         });
         root.addView(maxButton, matchWidthFixedHeight(48));
@@ -1056,7 +1056,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setFarPickupEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(16.0f);
+        setGainProgressForValue(20.0f);
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         if (announce) {
             speak("\u84dd\u7259\u6a21\u5f0f");
@@ -1078,10 +1078,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setOutputLimit(0.92f);
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
-        setFarPickupEnabled(false);
+        setFarPickupEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(18.0f);
+        setGainProgressForValue(22.0f);
         updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
         if (announce) {
             speak("\u6709\u7ebf\u6a21\u5f0f");
@@ -1113,7 +1113,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setFarPickupEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(true);
-        setGainProgressForValue(22.0f);
+        setGainProgressForValue(28.0f);
         updateModeFeedback(AppSettings.MODE_SEVERE);
         speak("\u91cd\u5ea6\u6a21\u5f0f");
     }

@@ -62,7 +62,7 @@ public final class HearingEngine {
     }
 
     public void setGain(float gain) {
-        this.gain = Math.max(0.2f, Math.min(gain, 64.0f));
+        this.gain = Math.max(0.2f, Math.min(gain, 72.0f));
     }
 
     public void setOutputLimit(float outputLimit) {
@@ -292,14 +292,14 @@ public final class HearingEngine {
                 input = voiceProcessor.highPass(input);
                 input = voiceProcessor.voiceShape(input);
                 float absInput = Math.abs(input);
-                if (farPickup && absInput > 45.0f && absInput < 3200.0f) {
-                    input *= 1.58f;
+                if (farPickup && absInput > 22.0f && absInput < 5200.0f) {
+                    input *= 1.95f;
                 }
-                if (absInput > 180.0f && absInput < 7200.0f) {
-                    input *= farPickup ? 1.32f : 1.24f;
+                if (absInput > (farPickup ? 80.0f : 180.0f) && absInput < 7200.0f) {
+                    input *= farPickup ? 1.48f : 1.24f;
                 }
-                if (absInput < (farPickup ? 45.0f : 90.0f)) {
-                    input *= 0.35f;
+                if (absInput < (farPickup ? 22.0f : 90.0f)) {
+                    input *= farPickup ? 0.65f : 0.35f;
                 }
                 input *= ambientNoiseGate.multiplierFor(absInput, farPickup);
             }
@@ -550,17 +550,17 @@ public final class HearingEngine {
         private float floor = 120.0f;
 
         float multiplierFor(float absInput, boolean farPickup) {
-            float learnLimit = farPickup ? 460.0f : 560.0f;
+            float learnLimit = farPickup ? 320.0f : 560.0f;
             if (absInput < learnLimit) {
                 floor = floor * 0.995f + absInput * 0.005f;
             }
-            float low = Math.max(farPickup ? 140.0f : 190.0f, floor * 2.8f);
-            float mid = Math.max(farPickup ? 360.0f : 460.0f, floor * 4.4f);
+            float low = Math.max(farPickup ? 70.0f : 190.0f, floor * (farPickup ? 1.8f : 2.8f));
+            float mid = Math.max(farPickup ? 210.0f : 460.0f, floor * (farPickup ? 3.0f : 4.4f));
             if (absInput < low) {
-                return 0.08f;
+                return farPickup ? 0.28f : 0.08f;
             }
             if (absInput < mid) {
-                return 0.42f;
+                return farPickup ? 0.72f : 0.42f;
             }
             return 1.0f;
         }
@@ -584,13 +584,13 @@ public final class HearingEngine {
             if (average < 0.018f && peakLevel < 0.08f) {
                 floor = floor * 0.992f + average * 0.008f;
             }
-            float quiet = Math.max(farPickup ? 0.012f : 0.016f, floor * 2.8f);
-            float speech = Math.max(farPickup ? 0.035f : 0.045f, floor * 7.0f);
+            float quiet = Math.max(farPickup ? 0.006f : 0.016f, floor * (farPickup ? 1.7f : 2.8f));
+            float speech = Math.max(farPickup ? 0.020f : 0.045f, floor * (farPickup ? 4.6f : 7.0f));
             if (average < quiet && peakLevel < speech) {
-                return 0.04f;
+                return farPickup ? 0.12f : 0.04f;
             }
             if (average < speech && peakLevel < 0.16f) {
-                return 0.28f;
+                return farPickup ? 0.55f : 0.28f;
             }
             return 1.0f;
         }
