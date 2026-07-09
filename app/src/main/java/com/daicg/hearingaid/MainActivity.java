@@ -1834,7 +1834,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setOutputLimit(0.96f);
         engine.setFeedbackProtectionEnabled(true);
         setBoneNoiseControlEnabled(false);
-        setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
+        setInputSourceMode(AppSettings.INPUT_HEADSET_MIC);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
         setLongRangePickupEnabled(false);
