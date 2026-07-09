@@ -322,7 +322,7 @@ public final class HearingEngine {
         int peak = 0;
         boolean highGainEchoControl = gain >= 8.0f;
         float effectiveOutputLimit = highGainEchoControl
-                ? Math.min(outputLimit, gain >= 16.0f ? 0.84f : 0.94f)
+                ? Math.min(outputLimit, gain >= 16.0f ? 0.84f : 0.96f)
                 : outputLimit;
         int limit = Math.round(Short.MAX_VALUE * effectiveOutputLimit);
         VoiceSignature frameSignature = VoiceSignature.fromSamples(buffer, length);
@@ -469,9 +469,9 @@ public final class HearingEngine {
                 }
                 if (gain < 15.5f && speechLikeFrame
                         && !electricNoiseFrame && !harshHissFrame && !proximityBuzzFrame) {
-                    float lowGainVoiceLift = voiceProcessor.boneConductionNoiseControlEnabled ? 1.32f : 1.22f;
+                    float lowGainVoiceLift = voiceProcessor.boneConductionNoiseControlEnabled ? 1.62f : 1.42f;
                     if (longRangePickup) {
-                        lowGainVoiceLift += 0.08f;
+                        lowGainVoiceLift += 0.12f;
                     }
                     input *= lowGainVoiceLift;
                 }
@@ -485,8 +485,9 @@ public final class HearingEngine {
             }
             if (enhanceVoice) {
                 sample = highGainEchoControl
-                        ? compressAndLimit(sample, limit, voiceProcessor.boneConductionNoiseControlEnabled ? 0.60f : 0.52f,
-                        voiceProcessor.boneConductionNoiseControlEnabled ? 0.20f : 0.16f)
+                        ? compressAndLimit(sample, limit,
+                        gain < 15.5f ? 0.46f : (voiceProcessor.boneConductionNoiseControlEnabled ? 0.60f : 0.52f),
+                        gain < 15.5f ? 0.34f : (voiceProcessor.boneConductionNoiseControlEnabled ? 0.20f : 0.16f))
                         : compressAndLimit(sample, limit);
                 sample = voiceProcessor.smoothOutput(sample, electricNoiseFrame || harshHissFrame,
                         speechLikeFrame, gain);

@@ -1,7 +1,7 @@
 {
-  "versionCode": 51,
-  "versionName": "5.10",
+  "versionCode": 52,
+  "versionName": "5.11",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "15 \u500d\u4ee5\u4e0b\u54cd\u5ea6\u4f18\u5316\u7248\uff1a\u4f4e\u6742\u97f3\u7684 8-15 \u500d\u533a\u95f4\u4f1a\u628a\u8033\u673a\u64ad\u653e\u97f3\u91cf\u62ac\u9ad8\uff0c\u5e76\u53ea\u5bf9\u50cf\u4eba\u58f0\u7684\u7247\u6bb5\u505a\u989d\u5916\u54cd\u5ea6\u63d0\u5347\uff1b\u5c3d\u91cf\u907f\u514d\u7ee7\u7eed\u62c9\u9ad8 20 \u500d\u4ee5\u4e0a\u5bfc\u81f4\u7535\u6d41\u58f0\u3002\u4e91\u66f4\u65b0\u4e0d\u5f3a\u5236\u3002"
+  "notes": "低噪大声版：默认增益提高到 12 倍；8 倍以上直接把耳机播放音量推到满格；15 倍以下的人声段进一步做响度提升和压缩，尽量用较低增益获得更大听感，减少高增益带来的电流声。云更新不强制。"
 }
