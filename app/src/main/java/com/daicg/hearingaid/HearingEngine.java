@@ -285,6 +285,7 @@ public final class HearingEngine {
                 if (loudnessGuard.shouldWarn(level, gain)) {
                     listener.onLoudListening(gain);
                 }
+                TestDataLogger.appendFrameStats(context, buffer, read, sampleRate);
                 listener.onLevel(level);
                 track.write(buffer, 0, read, AudioTrack.WRITE_BLOCKING);
             }

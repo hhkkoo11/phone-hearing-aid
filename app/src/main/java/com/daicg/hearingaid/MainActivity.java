@@ -396,7 +396,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 4.6\uff1a\u65b0\u589e\u6237\u5916\u6d4b\u8bd5\u6570\u636e\u91c7\u96c6");
+        versionText.setText("\u7248\u672c 4.7\uff1a\u5b8c\u6574\u6237\u5916\u8c03\u8bd5\u91c7\u96c6");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -837,6 +837,17 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         });
         content.addView(markTestButton, matchWidthFixedHeight(48));
         content.addView(makeHelpText("\u6237\u5916\u6d4b\u8bd5\u65f6\uff0c\u5982\u679c\u9047\u5230\u201c\u542c\u4e0d\u6e05\u201d\u3001\u201c\u6742\u97f3\u5927\u201d\u6216\u201c\u6548\u679c\u5f88\u597d\u201d\uff0c\u5c31\u70b9\u4e00\u4e0b\u8fd9\u4e2a\u6309\u94ae\uff0c\u56de\u6765\u540e\u65b9\u4fbf\u5bf9\u7740\u65f6\u95f4\u70b9\u4f18\u5316\u3002"), matchWidthWrapHeight());
+
+        Button audioSampleButton = makeSettingsButton("\u5f55\u5236 10 \u79d2\u8c03\u8bd5\u6837\u672c");
+        audioSampleButton.setOnClickListener(v -> {
+            AppSettings.prefs(this).edit()
+                    .putBoolean(AppSettings.KEY_OUTDOOR_DATA_COLLECTION, true)
+                    .apply();
+            TestDataLogger.requestAudioSample(this, 10_000L);
+            toast("\u5df2\u5f00\u59cb\u5f55\u5236 10 \u79d2\u8c03\u8bd5\u6837\u672c");
+        });
+        content.addView(audioSampleButton, matchWidthFixedHeight(48));
+        content.addView(makeHelpText("\u9047\u5230\u56de\u58f0\u3001\u7535\u6d41\u58f0\u3001\u542c\u4e0d\u6e05\u65f6\u70b9\u8fd9\u4e2a\u3002\u5b83\u4f1a\u4fdd\u5b58 10 \u79d2 App \u5904\u7406\u540e\u7684\u5355\u58f0\u9053 PCM \u97f3\u9891\u6837\u672c\uff0c\u7528\u4e8e\u56de\u6765\u7cbe\u51c6\u5206\u6790\u3002"), matchWidthWrapHeight());
 
         Button dataPathButton = makeSettingsButton("\u663e\u793a\u6570\u636e\u4fdd\u5b58\u4f4d\u7f6e");
         dataPathButton.setOnClickListener(v -> showTestDataLocation());
