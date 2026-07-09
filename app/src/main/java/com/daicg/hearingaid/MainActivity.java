@@ -1006,7 +1006,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
-        setNoiseSuppressionEnabled(false);
+        setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(2.5f);
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
@@ -1031,10 +1031,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setOutputLimit(0.74f);
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
-        setFarPickupEnabled(false);
-        setNoiseSuppressionEnabled(false);
+        setFarPickupEnabled(true);
+        setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(3.0f);
+        setGainProgressForValue(4.0f);
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         if (announce) {
             speak("\u84dd\u7259\u6a21\u5f0f");
@@ -1057,7 +1057,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
-        setNoiseSuppressionEnabled(false);
+        setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(5.0f);
         updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
@@ -1074,7 +1074,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
-        setNoiseSuppressionEnabled(false);
+        setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(4.0f);
         updateModeFeedback(AppSettings.MODE_POCKET);
@@ -1088,10 +1088,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setOutputLimit(0.86f);
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
-        setFarPickupEnabled(false);
-        setNoiseSuppressionEnabled(false);
-        setAutomaticGainEnabled(false);
-        setGainProgressForValue(5.0f);
+        setFarPickupEnabled(true);
+        setNoiseSuppressionEnabled(true);
+        setAutomaticGainEnabled(true);
+        setGainProgressForValue(7.0f);
         updateModeFeedback(AppSettings.MODE_SEVERE);
         speak("\u91cd\u5ea6\u6a21\u5f0f");
     }

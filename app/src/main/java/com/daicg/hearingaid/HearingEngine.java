@@ -30,8 +30,8 @@ public final class HearingEngine {
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     private static final int WIRED_SAMPLE_RATE = 48000;
     private static final int BLUETOOTH_SAMPLE_RATE = 44100;
-    private static final int WIRED_FRAME_BUFFER = 144;
-    private static final int BLUETOOTH_FRAME_BUFFER = 192;
+    private static final int WIRED_FRAME_BUFFER = 192;
+    private static final int BLUETOOTH_FRAME_BUFFER = 256;
 
     private final Context context;
     private final AudioManager audioManager;
@@ -42,7 +42,7 @@ public final class HearingEngine {
     private Thread audioThread;
     private float gain = 2.0f;
     private float outputLimit = 0.68f;
-    private boolean noiseSuppressionEnabled;
+    private boolean noiseSuppressionEnabled = true;
     private boolean automaticGainEnabled;
     private boolean voiceEnhancementEnabled = true;
     private boolean farPickupEnabled = true;
@@ -137,8 +137,8 @@ public final class HearingEngine {
             return;
         }
 
-        int recordBuffer = Math.max(minIn, frameBuffer * 3);
-        int trackBuffer = Math.max(minOut, frameBuffer * 3);
+        int recordBuffer = Math.max(minIn, frameBuffer * 4);
+        int trackBuffer = Math.max(minOut, frameBuffer * 4);
 
         AudioRecord record = null;
         AudioTrack track = null;
@@ -207,7 +207,6 @@ public final class HearingEngine {
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
             track.play();
-            trimPlaybackBuffer(track, frameBuffer);
 
             while (running) {
                 int read = record.read(buffer, 0, buffer.length, AudioRecord.READ_BLOCKING);
@@ -263,11 +262,14 @@ public final class HearingEngine {
         for (int i = 0; i < length; i++) {
             float input = buffer[i];
             if (enhanceVoice) {
+                input = voiceProcessor.highPass(input);
+                input = voiceProcessor.voiceShape(input);
                 float absInput = Math.abs(input);
-                if (absInput < (farPickup ? 180.0f : 220.0f)) {
-                    input *= 0.04f;
-                } else if (absInput < (farPickup ? 420.0f : 520.0f)) {
-                    input *= 0.45f;
+                if (farPickup && absInput > 45.0f && absInput < 2200.0f) {
+                    input *= 1.45f;
+                }
+                if (absInput < (farPickup ? 45.0f : 90.0f)) {
+                    input *= 0.35f;
                 }
             }
             int sample = Math.round(input * gain);
@@ -309,13 +311,6 @@ public final class HearingEngine {
     private static void releaseEffect(android.media.audiofx.AudioEffect effect) {
         if (effect != null) {
             effect.release();
-        }
-    }
-
-    private static void trimPlaybackBuffer(AudioTrack track, int frameBuffer) {
-        try {
-            track.setBufferSizeInFrames(frameBuffer * 3);
-        } catch (RuntimeException ignored) {
         }
     }
 
@@ -413,13 +408,15 @@ public final class HearingEngine {
     }
 
     private static final class VoiceProcessor {
+        private static final float HIGH_PASS_ALPHA = 0.97f;
+
         private float previousInput;
         private float previousOutput;
         private float previousPresenceInput;
         private float smoothedPresence;
 
         float highPass(float input) {
-            float output = 0.985f * (previousOutput + input - previousInput);
+            float output = HIGH_PASS_ALPHA * (previousOutput + input - previousInput);
             previousInput = input;
             previousOutput = output;
             return output;
@@ -428,8 +425,8 @@ public final class HearingEngine {
         float voiceShape(float input) {
             float edge = input - previousPresenceInput;
             previousPresenceInput = input;
-            smoothedPresence = smoothedPresence * 0.82f + edge * 0.18f;
-            return input;
+            smoothedPresence = smoothedPresence * 0.72f + edge * 0.28f;
+            return input + smoothedPresence * 0.32f;
         }
     }
 
