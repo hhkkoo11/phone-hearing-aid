@@ -145,7 +145,7 @@ final class AppSettings {
     static float gain(Context context) {
         return Math.max(0.2f, Math.min(
                 prefs(context).getFloat(KEY_GAIN, DEFAULT_GAIN),
-                36.0f));
+                48.0f));
     }
 
     static boolean voiceEnhancementEnabled(Context context) {

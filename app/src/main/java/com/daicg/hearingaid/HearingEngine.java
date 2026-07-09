@@ -74,7 +74,7 @@ public final class HearingEngine {
     }
 
     public void setGain(float gain) {
-        this.gain = Math.max(0.2f, Math.min(gain, 36.0f));
+        this.gain = Math.max(0.2f, Math.min(gain, 48.0f));
     }
 
     public void setOutputLimit(float outputLimit) {

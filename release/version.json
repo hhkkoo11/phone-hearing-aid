@@ -1,7 +1,7 @@
 {
-  "versionCode": 58,
-  "versionName": "5.17",
+  "versionCode": 59,
+  "versionName": "5.18",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "骨传导大声稳定版：继续默认手机麦克风收音并关闭远距离/回声消除，避免森林回声感；同时把蓝牙输出上限提高，默认增益提高到 14 倍，并对手机麦克风收到的人声做额外响度提升。云更新不强制。"
+  "notes": "超大声骨传导版：继续默认手机麦克风收音并关闭远距离/回声消除，保持清楚路线；最大增益从 36 倍提高到 48 倍，蓝牙输出上限提高到 0.96，最大档同步为 48 倍。若出现滋滋声、啸叫或刺耳，请立即降低增益。云更新不强制。"
 }
