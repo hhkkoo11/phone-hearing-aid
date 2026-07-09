@@ -62,7 +62,7 @@ public final class HearingEngine {
     }
 
     public void setGain(float gain) {
-        this.gain = Math.max(0.2f, Math.min(gain, 40.0f));
+        this.gain = Math.max(0.2f, Math.min(gain, 48.0f));
     }
 
     public void setOutputLimit(float outputLimit) {
@@ -238,7 +238,7 @@ public final class HearingEngine {
                         ambientNoiseGate, frameNoiseGate, feedbackGuard);
                 if (feedbackProtectionEnabled && feedbackGuard.shouldReduceGain()
                         && gain > 2.0f) {
-                    gain = Math.max(2.0f, gain * 0.86f);
+                    gain = Math.max(2.0f, gain * 0.90f);
                     listener.onGainReduced(gain);
                     feedbackGuard.reset();
                 }
@@ -510,11 +510,11 @@ public final class HearingEngine {
             float edge = input - previousPresenceInput;
             previousPresenceInput = input;
             smoothedPresence = smoothedPresence * 0.72f + edge * 0.28f;
-            return input + smoothedPresence * 0.32f;
+            return input + smoothedPresence * 0.14f;
         }
 
         float deHiss(float sample) {
-            deHissOutput = deHissOutput * 0.34f + sample * 0.66f;
+            deHissOutput = deHissOutput * 0.42f + sample * 0.58f;
             return deHissOutput;
         }
     }
@@ -534,12 +534,12 @@ public final class HearingEngine {
             }
             float average = sum / (float) Math.max(1, length) / Short.MAX_VALUE;
             float peakLevel = peak / (float) Short.MAX_VALUE;
-            if (average > 0.055f && peakLevel > 0.20f) {
-                holdFrames = 56;
+            if (average > 0.040f && peakLevel > 0.16f) {
+                holdFrames = 82;
             } else if (holdFrames > 0) {
                 holdFrames--;
             }
-            return holdFrames > 0 ? 0.22f : 1.0f;
+            return holdFrames > 0 ? 0.10f : 1.0f;
         }
     }
 
