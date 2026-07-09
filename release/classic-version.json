@@ -1,7 +1,7 @@
 {
-  "versionCode": 11,
-  "versionName": "classic-2.0",
+  "versionCode": 12,
+  "versionName": "classic-2.1",
   "packageName": "com.daicg.hearingaid.classic",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
-  "notes": "经典回溯版加自声抑制：保持最初公开版收音链路，新增默认开启的“减少自己声音”功能，自己说话很近很响时自动压低耳机回放，减轻延迟回声。"
+  "notes": "经典版：默认优先指定耳机麦克风作为收音输入；系统可见有线/USB/蓝牙耳机输入时优先使用，找不到耳机输入时自动退回可用麦克风。"
 }
