@@ -145,6 +145,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         boolean selfVoiceReduction = AppSettings.selfVoiceReductionEnabled(this);
         boolean noiseSuppression = AppSettings.noiseSuppressionEnabled(this);
         boolean automaticGain = AppSettings.automaticGainEnabled(this);
+        engine.setInputSourceMode(AppSettings.inputSourceMode(this));
         if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
             engine.setGain(savedGain);
             engine.setOutputLimit(0.78f);

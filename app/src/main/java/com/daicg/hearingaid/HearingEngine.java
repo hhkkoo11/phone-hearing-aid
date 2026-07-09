@@ -58,6 +58,7 @@ public final class HearingEngine {
     private float selfVoiceProfileZcr;
     private float selfVoiceProfileDiffRatio;
     private float selfVoiceProfilePeakRatio;
+    private String inputSourceMode = AppSettings.INPUT_PHONE_MIC;
     private boolean boneConductionNoiseControlEnabled;
     private boolean feedbackProtectionEnabled = true;
 
@@ -113,6 +114,14 @@ public final class HearingEngine {
         this.selfVoiceProfileZcr = zcr;
         this.selfVoiceProfileDiffRatio = diffRatio;
         this.selfVoiceProfilePeakRatio = peakRatio;
+    }
+
+    public void setInputSourceMode(String mode) {
+        if (AppSettings.INPUT_HEADSET_MIC.equals(mode) || AppSettings.INPUT_AUTO.equals(mode)) {
+            this.inputSourceMode = mode;
+        } else {
+            this.inputSourceMode = AppSettings.INPUT_PHONE_MIC;
+        }
     }
 
     public void setBoneConductionNoiseControlEnabled(boolean enabled) {
@@ -543,6 +552,21 @@ public final class HearingEngine {
     }
 
     private AudioDeviceInfo findPreferredInputDevice() {
+        if (AppSettings.INPUT_HEADSET_MIC.equals(inputSourceMode)) {
+            AudioDeviceInfo headsetMic = findHeadsetInputDevice();
+            if (headsetMic != null) {
+                return headsetMic;
+            }
+        } else if (AppSettings.INPUT_AUTO.equals(inputSourceMode)) {
+            AudioDeviceInfo headsetMic = findHeadsetInputDevice();
+            if (headsetMic != null && !hasWiredOutput()) {
+                return headsetMic;
+            }
+        }
+        return findPhoneInputDevice();
+    }
+
+    private AudioDeviceInfo findPhoneInputDevice() {
         AudioDeviceInfo fallbackMic = null;
         for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)) {
             int type = device.getType();
@@ -554,6 +578,24 @@ public final class HearingEngine {
             }
         }
         return fallbackMic;
+    }
+
+    private AudioDeviceInfo findHeadsetInputDevice() {
+        AudioDeviceInfo bluetooth = null;
+        for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)) {
+            int type = device.getType();
+            if (type == AudioDeviceInfo.TYPE_WIRED_HEADSET
+                    || type == AudioDeviceInfo.TYPE_USB_HEADSET
+                    || type == AudioDeviceInfo.TYPE_USB_DEVICE
+                    || type == AudioDeviceInfo.TYPE_USB_ACCESSORY) {
+                return device;
+            }
+            if (type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+                    || type == AudioDeviceInfo.TYPE_BLE_HEADSET) {
+                bluetooth = device;
+            }
+        }
+        return bluetooth;
     }
 
     @SuppressLint("MissingPermission")

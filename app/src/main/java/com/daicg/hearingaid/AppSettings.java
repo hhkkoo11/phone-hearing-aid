@@ -22,6 +22,7 @@ final class AppSettings {
     static final String KEY_SELF_VOICE_PROFILE_DIFF = "self_voice_profile_diff";
     static final String KEY_SELF_VOICE_PROFILE_PEAK = "self_voice_profile_peak";
     static final String KEY_LONG_RANGE_PICKUP = "long_range_pickup";
+    static final String KEY_INPUT_SOURCE_MODE = "input_source_mode";
     static final String KEY_GAIN = "gain";
     static final String KEY_VOICE_ENHANCEMENT = "voice_enhancement";
     static final String KEY_FAR_PICKUP = "far_pickup";
@@ -36,6 +37,9 @@ final class AppSettings {
     static final String MODE_POCKET = "pocket";
     static final String MODE_SEVERE = "severe";
     static final String MODE_BONE_CONDUCTION = "bone_conduction";
+    static final String INPUT_PHONE_MIC = "phone_mic";
+    static final String INPUT_HEADSET_MIC = "headset_mic";
+    static final String INPUT_AUTO = "auto";
 
     private AppSettings() {
     }
@@ -92,6 +96,10 @@ final class AppSettings {
 
     static boolean longRangePickupEnabled(Context context) {
         return prefs(context).getBoolean(KEY_LONG_RANGE_PICKUP, false);
+    }
+
+    static String inputSourceMode(Context context) {
+        return prefs(context).getString(KEY_INPUT_SOURCE_MODE, INPUT_PHONE_MIC);
     }
 
     static float gain(Context context) {

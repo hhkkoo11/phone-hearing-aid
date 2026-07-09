@@ -113,6 +113,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private boolean selfVoiceReductionEnabled;
     private boolean noiseSuppressionEnabled = true;
     private boolean automaticGainEnabled;
+    private String inputSourceMode = AppSettings.INPUT_PHONE_MIC;
     private String activeAppliedMode;
     private String lastSpokenText = "";
     private long lastSpokenAtMillis;
@@ -203,6 +204,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         selfVoiceReductionEnabled = AppSettings.selfVoiceReductionEnabled(this);
         noiseSuppressionEnabled = AppSettings.noiseSuppressionEnabled(this);
         automaticGainEnabled = AppSettings.automaticGainEnabled(this);
+        inputSourceMode = AppSettings.inputSourceMode(this);
         engine.setVoiceEnhancementEnabled(voiceEnhancementEnabled);
         engine.setFarPickupEnabled(farPickupEnabled);
         engine.setLongRangePickupEnabled(longRangePickupEnabled);
@@ -210,6 +212,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setSelfVoiceReductionEnabled(selfVoiceReductionEnabled);
         engine.setNoiseSuppressionEnabled(noiseSuppressionEnabled);
         engine.setAutomaticGainEnabled(automaticGainEnabled);
+        engine.setInputSourceMode(inputSourceMode);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         textToSpeech = new TextToSpeech(this, status -> {
@@ -376,7 +379,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 4.2\uff1a\u65b0\u589e\u901a\u8bdd\u653e\u5927\u517c\u5bb9");
+        versionText.setText("\u7248\u672c 4.3\uff1a\u65b0\u589e\u6536\u97f3\u6765\u6e90\u5207\u6362");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -540,6 +543,15 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         return view;
     }
 
+    private TextView makeSectionTitle(String text) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextSize(16);
+        view.setTextColor(0xFF10231F);
+        view.setPadding(0, dp(14), 0, dp(4));
+        return view;
+    }
+
     private void showTutorialDialog() {
         int pad = dp(18);
         ScrollView scrollView = new ScrollView(this);
@@ -650,6 +662,22 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 longRangePickupEnabled,
                 "\u60f3\u542c 5 \u7c73\u5de6\u53f3\u7684\u4eba\u8bf4\u8bdd\u5c31\u6253\u5f00\uff1a\u4f1a\u66f4\u7528\u529b\u6536\u5c0f\u58f0\u97f3\uff0c\u4f46\u73af\u5883\u6742\u97f3\u4e5f\u53ef\u80fd\u66f4\u591a\u3002",
                 this::setLongRangePickupEnabled);
+
+        content.addView(makeSectionTitle("\u6536\u97f3\u6765\u6e90"), matchWidthWrapHeight());
+        LinearLayout inputButtons = new LinearLayout(this);
+        inputButtons.setOrientation(LinearLayout.HORIZONTAL);
+        inputButtons.setGravity(Gravity.CENTER);
+        Button phoneMicButton = makeSettingsButton("\u624b\u673a");
+        phoneMicButton.setOnClickListener(v -> setInputSourceMode(AppSettings.INPUT_PHONE_MIC));
+        inputButtons.addView(phoneMicButton, weightedButtonParams());
+        Button headsetMicButton = makeSettingsButton("\u8033\u673a");
+        headsetMicButton.setOnClickListener(v -> setInputSourceMode(AppSettings.INPUT_HEADSET_MIC));
+        inputButtons.addView(headsetMicButton, weightedButtonParams());
+        Button autoMicButton = makeSettingsButton("\u81ea\u52a8");
+        autoMicButton.setOnClickListener(v -> setInputSourceMode(AppSettings.INPUT_AUTO));
+        inputButtons.addView(autoMicButton, weightedButtonParams());
+        content.addView(inputButtons, matchWidthFixedHeight(48));
+        content.addView(makeHelpText(inputSourceHelpText()), matchWidthWrapHeight());
 
         echoSwitch = addSettingSwitch(
                 content,
@@ -1478,6 +1506,38 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_LONG_RANGE_PICKUP, enabled).apply();
         setSwitchChecked(longRangePickupSwitch, enabled);
         refreshListeningServiceIfActive();
+    }
+
+    private void setInputSourceMode(String mode) {
+        if (!AppSettings.INPUT_HEADSET_MIC.equals(mode) && !AppSettings.INPUT_AUTO.equals(mode)) {
+            mode = AppSettings.INPUT_PHONE_MIC;
+        }
+        inputSourceMode = mode;
+        engine.setInputSourceMode(mode);
+        AppSettings.prefs(this).edit()
+                .putString(AppSettings.KEY_INPUT_SOURCE_MODE, mode)
+                .apply();
+        refreshListeningServiceIfActive();
+        if (AppSettings.INPUT_HEADSET_MIC.equals(mode)) {
+            toast("\u5df2\u5207\u5230\u8033\u673a\u9ea6\u514b\u98ce\u6536\u97f3");
+            speak("\u8033\u673a\u6536\u97f3");
+        } else if (AppSettings.INPUT_AUTO.equals(mode)) {
+            toast("\u5df2\u5207\u5230\u81ea\u52a8\u9009\u62e9\u6536\u97f3");
+            speak("\u81ea\u52a8\u6536\u97f3");
+        } else {
+            toast("\u5df2\u5207\u5230\u624b\u673a\u9ea6\u514b\u98ce\u6536\u97f3");
+            speak("\u624b\u673a\u6536\u97f3");
+        }
+    }
+
+    private String inputSourceHelpText() {
+        if (AppSettings.INPUT_HEADSET_MIC.equals(inputSourceMode)) {
+            return "\u5f53\u524d\uff1a\u8033\u673a\u6536\u97f3\u3002\u9002\u5408\u8033\u673a\u9ea6\u514b\u98ce\u786c\u4ef6\u5f88\u597d\u7684\u60c5\u51b5\uff1b\u9aa8\u4f20\u5bfc\u8033\u673a\u53ef\u80fd\u4f1a\u628a\u81ea\u5df1\u8bf4\u8bdd\u3001\u547c\u5438\u548c\u6469\u64e6\u58f0\u653e\u5f97\u66f4\u660e\u663e\u3002";
+        }
+        if (AppSettings.INPUT_AUTO.equals(inputSourceMode)) {
+            return "\u5f53\u524d\uff1a\u81ea\u52a8\u3002App \u4f1a\u5c3d\u91cf\u9009\u53ef\u7528\u7684\u8033\u673a\u9ea6\u514b\u98ce\uff0c\u8bc6\u522b\u4e0d\u5230\u5c31\u56de\u5230\u624b\u673a\u9ea6\u514b\u98ce\u3002";
+        }
+        return "\u5f53\u524d\uff1a\u624b\u673a\u6536\u97f3\u3002\u8fd9\u662f\u9ed8\u8ba4\u65b9\u5f0f\uff0c\u901a\u5e38\u5ef6\u8fdf\u6700\u4f4e\u3001\u6700\u7a33\u5b9a\uff0c\u4e5f\u66f4\u50cf\u521d\u4ee3\u7248\u672c\u7684\u6536\u97f3\u6548\u679c\u3002";
     }
 
     private void setEchoCancellationEnabled(boolean enabled) {
