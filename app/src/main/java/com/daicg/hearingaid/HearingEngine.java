@@ -30,8 +30,8 @@ public final class HearingEngine {
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     private static final int WIRED_SAMPLE_RATE = 48000;
     private static final int BLUETOOTH_SAMPLE_RATE = 44100;
-    private static final int WIRED_FRAME_BUFFER = 192;
-    private static final int BLUETOOTH_FRAME_BUFFER = 256;
+    private static final int WIRED_FRAME_BUFFER = 96;
+    private static final int BLUETOOTH_FRAME_BUFFER = 160;
 
     private final Context context;
     private final AudioManager audioManager;
@@ -137,8 +137,8 @@ public final class HearingEngine {
             return;
         }
 
-        int recordBuffer = Math.max(minIn, frameBuffer * 4);
-        int trackBuffer = Math.max(minOut, frameBuffer * 4);
+        int recordBuffer = Math.max(minIn, frameBuffer * 2);
+        int trackBuffer = Math.max(minOut, frameBuffer * 2);
 
         AudioRecord record = null;
         AudioTrack track = null;
@@ -207,6 +207,7 @@ public final class HearingEngine {
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
             track.play();
+            trimPlaybackBuffer(track, frameBuffer);
 
             while (running) {
                 int read = record.read(buffer, 0, buffer.length, AudioRecord.READ_BLOCKING);
@@ -266,7 +267,7 @@ public final class HearingEngine {
                 input = voiceProcessor.voiceShape(input);
                 float absInput = Math.abs(input);
                 if (farPickup && absInput > 45.0f && absInput < 2200.0f) {
-                    input *= absInput < 760.0f ? 1.72f : 1.52f;
+                    input *= absInput < 820.0f ? 1.82f : 1.56f;
                 }
                 if (absInput < (farPickup ? 45.0f : 90.0f)) {
                     input *= 0.35f;
@@ -311,6 +312,13 @@ public final class HearingEngine {
     private static void releaseEffect(android.media.audiofx.AudioEffect effect) {
         if (effect != null) {
             effect.release();
+        }
+    }
+
+    private static void trimPlaybackBuffer(AudioTrack track, int frameBuffer) {
+        try {
+            track.setBufferSizeInFrames(frameBuffer * 2);
+        } catch (RuntimeException ignored) {
         }
     }
 
@@ -408,7 +416,7 @@ public final class HearingEngine {
     }
 
     private static final class VoiceProcessor {
-        private static final float HIGH_PASS_ALPHA = 0.97f;
+        private static final float HIGH_PASS_ALPHA = 0.965f;
 
         private float previousInput;
         private float previousOutput;
@@ -425,8 +433,8 @@ public final class HearingEngine {
         float voiceShape(float input) {
             float edge = input - previousPresenceInput;
             previousPresenceInput = input;
-            smoothedPresence = smoothedPresence * 0.68f + edge * 0.32f;
-            return input * 1.06f + smoothedPresence * 0.42f;
+            smoothedPresence = smoothedPresence * 0.64f + edge * 0.36f;
+            return input * 1.08f + smoothedPresence * 0.50f;
         }
     }
 
