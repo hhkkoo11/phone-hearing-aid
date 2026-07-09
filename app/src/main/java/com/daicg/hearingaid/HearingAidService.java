@@ -236,7 +236,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             setSystemMusicVolumeMax();
         } else {
             engine.setGain(savedGain);
-            engine.setOutputLimit(0.84f);
+            engine.setOutputLimit(0.90f);
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(voiceEnhancement);
             engine.setFarPickupEnabled(farPickup);

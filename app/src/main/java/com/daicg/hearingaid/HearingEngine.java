@@ -333,6 +333,9 @@ public final class HearingEngine {
                 if (farPickup && absInput > 70.0f && absInput < 2200.0f) {
                     input *= 1.45f;
                     absInput = Math.abs(input);
+                } else if (!farPickup && absInput > 95.0f && absInput < 2600.0f) {
+                    input *= 1.35f;
+                    absInput = Math.abs(input);
                 }
                 if (longRangePickup && absInput > 45.0f && absInput < 1800.0f) {
                     input *= 1.22f;

@@ -35,7 +35,7 @@ final class AppSettings {
     static final String KEY_SELF_VOICE_REDUCTION = "self_voice_reduction";
     static final String KEY_NOISE_SUPPRESSION = "noise_suppression";
     static final String KEY_AUTOMATIC_GAIN = "automatic_gain";
-    static final float DEFAULT_GAIN = 12.0f;
+    static final float DEFAULT_GAIN = 14.0f;
 
     static final String MODE_BLUETOOTH_DAILY = "bluetooth_daily";
     static final String MODE_WIRED_INDOOR = "wired_indoor";

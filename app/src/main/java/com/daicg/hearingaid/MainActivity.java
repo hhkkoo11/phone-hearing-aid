@@ -1831,7 +1831,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         suppressServiceRefresh = true;
         activeAppliedMode = AppSettings.MODE_BLUETOOTH_DAILY;
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
-        engine.setOutputLimit(0.74f);
+        engine.setOutputLimit(0.90f);
         engine.setFeedbackProtectionEnabled(true);
         setBoneNoiseControlEnabled(false);
         setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
