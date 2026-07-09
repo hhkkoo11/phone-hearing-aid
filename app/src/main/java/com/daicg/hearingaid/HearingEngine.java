@@ -327,6 +327,9 @@ public final class HearingEngine {
                 input = voiceProcessor.highPass(input);
                 input = voiceProcessor.voiceShape(input);
                 float absInput = Math.abs(input);
+                input *= voiceProcessor.environmentGate(absInput, farPickup || longRangePickup);
+                input = voiceProcessor.reduceEchoTail(input, farPickup || longRangePickup);
+                absInput = Math.abs(input);
                 if (farPickup && absInput > 70.0f && absInput < 2200.0f) {
                     input *= 1.45f;
                     absInput = Math.abs(input);
@@ -602,6 +605,8 @@ public final class HearingEngine {
         private float boneOutdoorTail;
         private float boneOutdoorPrevious;
         private float outputSmoother;
+        private float environmentFloor = 120.0f;
+        private float echoTail;
         private float selfTalkDuck = 1.0f;
         private boolean selfVoiceProfileEnabled;
         private float selfVoiceProfileZcr;
@@ -631,6 +636,27 @@ public final class HearingEngine {
             previousPresenceInput = input;
             smoothedPresence = smoothedPresence * 0.74f + edge * 0.26f;
             return input * 1.02f + smoothedPresence * 0.18f;
+        }
+
+        float environmentGate(float absInput, boolean outdoorPickup) {
+            float learnSpeed = absInput < environmentFloor * 3.0f ? 0.015f : 0.002f;
+            environmentFloor += (absInput - environmentFloor) * learnSpeed;
+            float quiet = Math.max(outdoorPickup ? 95.0f : 70.0f, environmentFloor * 1.35f);
+            float speechStart = Math.max(outdoorPickup ? 300.0f : 240.0f, environmentFloor * 3.4f);
+            if (absInput < quiet) {
+                return outdoorPickup ? 0.12f : 0.18f;
+            }
+            if (absInput < speechStart) {
+                float t = (absInput - quiet) / Math.max(1.0f, speechStart - quiet);
+                return (outdoorPickup ? 0.22f : 0.30f) + t * 0.58f;
+            }
+            return 1.0f;
+        }
+
+        float reduceEchoTail(float input, boolean outdoorPickup) {
+            float alpha = outdoorPickup ? 0.985f : 0.975f;
+            echoTail = echoTail * alpha + input * (1.0f - alpha);
+            return input - echoTail * (outdoorPickup ? 0.62f : 0.45f);
         }
 
         float highGainDeEcho(float input, float gain) {

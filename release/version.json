@@ -1,7 +1,7 @@
 {
-  "versionCode": 55,
-  "versionName": "5.14",
+  "versionCode": 56,
+  "versionName": "5.15",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "增益可控修复版：保留原始音色回归版的直接放大链路，并修复跟随手机音量时系统音量反向把 App 增益顶到最大的问题。现在 App 的加减和滑条只控制增益，手机音量只作为耳机播放音量，不再反向改增益。云更新不强制。"
+  "notes": "森林/户外降杂音版：保留原始音色的大声直接放大，但加入动态环境地板和回声尾巴削减，压低森林里持续的小碎声、风声、叶子声和空间回声，尽量保留突然出现的人声。云更新不强制。"
 }
