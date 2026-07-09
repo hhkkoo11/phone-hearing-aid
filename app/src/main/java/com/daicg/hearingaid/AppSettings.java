@@ -1,7 +1,10 @@
 package com.daicg.hearingaid;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.telephony.TelephonyManager;
 
 final class AppSettings {
     static final String PREFS = "hearing_aid_settings";
@@ -71,7 +74,31 @@ final class AppSettings {
     }
 
     static boolean callActive(Context context) {
-        return prefs(context).getBoolean(KEY_CALL_ACTIVE, false);
+        if (!prefs(context).getBoolean(KEY_CALL_ACTIVE, false)) {
+            return false;
+        }
+        if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE)
+                != PackageManager.PERMISSION_GRANTED) {
+            return true;
+        }
+        TelephonyManager telephonyManager =
+                (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        if (telephonyManager == null) {
+            return true;
+        }
+        try {
+            int state = telephonyManager.getCallState();
+            if (state == TelephonyManager.CALL_STATE_IDLE) {
+                prefs(context).edit()
+                        .putBoolean(KEY_CALL_ACTIVE, false)
+                        .putBoolean(KEY_CALL_ASSIST_WAS_LISTENING, false)
+                        .apply();
+                return false;
+            }
+            return true;
+        } catch (RuntimeException ignored) {
+            return true;
+        }
     }
 
     static boolean outdoorDataCollectionEnabled(Context context) {
