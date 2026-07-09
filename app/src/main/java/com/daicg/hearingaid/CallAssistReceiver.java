@@ -44,6 +44,7 @@ public final class CallAssistReceiver extends BroadcastReceiver {
                 .putBoolean(AppSettings.KEY_CALL_ASSIST_WAS_LISTENING, false)
                 .apply();
         if (shouldRestore
+                && MainActivity.isVisible()
                 && AppSettings.autoMonitorEnabled(context)
                 && !AppSettings.autoListenPaused(context)
                 && hasAnyHeadsetOutput(context)) {

@@ -63,8 +63,14 @@ public final class HearingAidService extends Service implements HearingEngine.Li
     public void onCreate() {
         super.onCreate();
         NotificationHelper.ensureChannels(this);
-        startForeground(NotificationHelper.LISTENING_NOTIFICATION_ID,
-                NotificationHelper.listeningNotification(this));
+        try {
+            startForeground(NotificationHelper.LISTENING_NOTIFICATION_ID,
+                    NotificationHelper.listeningNotification(this));
+        } catch (SecurityException exception) {
+            active = false;
+            stopSelf();
+            return;
+        }
         if (AppSettings.autoListenPaused(this)) {
             stopSelf();
             return;
@@ -117,9 +123,6 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        if (active && !AppSettings.autoListenPaused(this) && !AppSettings.callActive(this)) {
-            HearingAidService.start(this);
-        }
         super.onTaskRemoved(rootIntent);
     }
 
@@ -175,13 +178,13 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         boolean farPickup = AppSettings.farPickupEnabled(this);
         boolean longRangePickup = AppSettings.longRangePickupEnabled(this);
         boolean echoCancellation = AppSettings.echoCancellationEnabled(this);
-        boolean selfVoiceReduction = AppSettings.selfVoiceReductionEnabled(this);
+        boolean selfVoiceReduction = false;
         boolean noiseSuppression = AppSettings.noiseSuppressionEnabled(this);
         boolean automaticGain = AppSettings.automaticGainEnabled(this);
         engine.setInputSourceMode(AppSettings.inputSourceMode(this));
         if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
             engine.setGain(savedGain);
-            engine.setOutputLimit(0.78f);
+            engine.setOutputLimit(0.86f);
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(voiceEnhancement);
             engine.setFarPickupEnabled(farPickup);
@@ -203,7 +206,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setAutomaticGainEnabled(automaticGain);
         } else if (AppSettings.MODE_SEVERE.equals(mode)) {
             engine.setGain(savedGain);
-            engine.setOutputLimit(0.86f);
+            engine.setOutputLimit(0.90f);
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(voiceEnhancement);
             engine.setFarPickupEnabled(farPickup);
@@ -214,7 +217,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setAutomaticGainEnabled(automaticGain);
         } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
             engine.setGain(savedGain);
-            engine.setOutputLimit(0.90f);
+            engine.setOutputLimit(0.94f);
             engine.setBoneConductionNoiseControlEnabled(true);
             engine.setVoiceEnhancementEnabled(voiceEnhancement);
             engine.setFarPickupEnabled(farPickup);
@@ -226,7 +229,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             setSystemMusicVolumeMax();
         } else {
             engine.setGain(savedGain);
-            engine.setOutputLimit(0.74f);
+            engine.setOutputLimit(0.84f);
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(voiceEnhancement);
             engine.setFarPickupEnabled(farPickup);

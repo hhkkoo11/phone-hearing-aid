@@ -41,7 +41,7 @@ final class NotificationHelper {
     static Notification monitorNotification(Context context) {
         return baseBuilder(context, MONITOR_CHANNEL)
                 .setContentTitle("\u624b\u673a\u52a9\u542c\u5668\u5df2\u5f85\u547d")
-                .setContentText("\u6b63\u5728\u4f4e\u529f\u8017\u76d1\u6d4b\u8033\u673a\u8fde\u63a5")
+                .setContentText("\u6b63\u5728\u4f4e\u529f\u8017\u76d1\u6d4b\u8033\u673a\uff0c\u70b9\u51fb\u53ef\u5f00\u542f\u52a9\u542c")
                 .setOngoing(true)
                 .build();
     }

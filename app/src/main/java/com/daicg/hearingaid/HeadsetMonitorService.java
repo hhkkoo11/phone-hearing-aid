@@ -119,7 +119,7 @@ public final class HeadsetMonitorService extends Service {
             return;
         }
         HearingEngine engine = new HearingEngine(this, NoopListener.INSTANCE);
-        if (!MainActivity.isVisible()
+        if (MainActivity.isVisible()
                 && (engine.hasWiredOutput() || engine.hasBluetoothOutput())
                 && !HearingAidService.isActive()) {
             HearingAidService.start(this);

@@ -74,11 +74,11 @@ public final class HearingEngine {
     }
 
     public void setGain(float gain) {
-        this.gain = Math.max(0.2f, Math.min(gain, 24.0f));
+        this.gain = Math.max(0.2f, Math.min(gain, 36.0f));
     }
 
     public void setOutputLimit(float outputLimit) {
-        this.outputLimit = Math.max(0.45f, Math.min(outputLimit, 0.90f));
+        this.outputLimit = Math.max(0.45f, Math.min(outputLimit, 0.96f));
     }
 
     public void setNoiseSuppressionEnabled(boolean enabled) {
@@ -322,7 +322,7 @@ public final class HearingEngine {
         int peak = 0;
         boolean highGainEchoControl = gain >= 8.0f;
         float effectiveOutputLimit = highGainEchoControl
-                ? Math.min(outputLimit, gain >= 16.0f ? 0.74f : 0.80f)
+                ? Math.min(outputLimit, gain >= 16.0f ? 0.84f : 0.88f)
                 : outputLimit;
         int limit = Math.round(Short.MAX_VALUE * effectiveOutputLimit);
         VoiceSignature frameSignature = VoiceSignature.fromSamples(buffer, length);
