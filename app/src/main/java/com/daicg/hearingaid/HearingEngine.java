@@ -266,7 +266,7 @@ public final class HearingEngine {
                 input = voiceProcessor.voiceShape(input);
                 float absInput = Math.abs(input);
                 if (farPickup && absInput > 45.0f && absInput < 2200.0f) {
-                    input *= 1.45f;
+                    input *= absInput < 760.0f ? 1.72f : 1.52f;
                 }
                 if (absInput < (farPickup ? 45.0f : 90.0f)) {
                     input *= 0.35f;
@@ -425,8 +425,8 @@ public final class HearingEngine {
         float voiceShape(float input) {
             float edge = input - previousPresenceInput;
             previousPresenceInput = input;
-            smoothedPresence = smoothedPresence * 0.72f + edge * 0.28f;
-            return input + smoothedPresence * 0.32f;
+            smoothedPresence = smoothedPresence * 0.68f + edge * 0.32f;
+            return input * 1.06f + smoothedPresence * 0.42f;
         }
     }
 

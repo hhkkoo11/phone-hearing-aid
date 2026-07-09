@@ -42,7 +42,7 @@ public final class HeadsetMonitorService extends Service {
     public static void start(Context context) {
         Intent intent = new Intent(context, HeadsetMonitorService.class);
         try {
-            context.startForegroundService(intent);
+            context.startService(intent);
         } catch (RuntimeException ignored) {
         }
     }
@@ -55,8 +55,6 @@ public final class HeadsetMonitorService extends Service {
     public void onCreate() {
         super.onCreate();
         NotificationHelper.ensureChannels(this);
-        startForeground(NotificationHelper.MONITOR_NOTIFICATION_ID,
-                NotificationHelper.monitorNotification(this));
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, null);
         registerReceiver(receiver, routeFilter());

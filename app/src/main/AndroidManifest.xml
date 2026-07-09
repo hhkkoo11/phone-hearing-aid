@@ -28,8 +28,7 @@
 
         <service
             android:name=".HeadsetMonitorService"
-            android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
+            android:exported="false" />
 
         <receiver
             android:name=".BootReceiver"
