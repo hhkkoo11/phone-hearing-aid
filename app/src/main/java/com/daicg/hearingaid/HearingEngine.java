@@ -62,7 +62,7 @@ public final class HearingEngine {
     }
 
     public void setGain(float gain) {
-        this.gain = Math.max(0.2f, Math.min(gain, 48.0f));
+        this.gain = Math.max(0.2f, Math.min(gain, 56.0f));
     }
 
     public void setOutputLimit(float outputLimit) {
@@ -510,11 +510,11 @@ public final class HearingEngine {
             float edge = input - previousPresenceInput;
             previousPresenceInput = input;
             smoothedPresence = smoothedPresence * 0.72f + edge * 0.28f;
-            return input + smoothedPresence * 0.14f;
+            return input + smoothedPresence * 0.06f;
         }
 
         float deHiss(float sample) {
-            deHissOutput = deHissOutput * 0.42f + sample * 0.58f;
+            deHissOutput = deHissOutput * 0.55f + sample * 0.45f;
             return deHissOutput;
         }
     }
