@@ -1,7 +1,7 @@
 {
-  "versionCode": 20,
-  "versionName": "classic-2.9",
+  "versionCode": 21,
+  "versionName": "classic-3.0",
   "packageName": "com.daicg.hearingaid.classic",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
-  "notes": "经典版：最大增益提高到 64x；新增人声主体温和放大，让说话声更大，不恢复尖锐边缘；蓝牙/有线/重度默认响度继续提高。云更新不强制。"
+  "notes": "经典版：修复增益调节被手机音量反向同步拉回的问题。App 内 + / - 和滑块现在优先控制增益，系统音量只负责输出音量，不再覆盖增益。云更新不强制。"
 }
