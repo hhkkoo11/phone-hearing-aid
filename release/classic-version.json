@@ -1,7 +1,7 @@
 {
-  "versionCode": 16,
-  "versionName": "classic-2.5",
+  "versionCode": 17,
+  "versionName": "classic-2.6",
   "packageName": "com.daicg.hearingaid.classic",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
-  "notes": "经典版：新增“手机麦克风收音”模式，默认让手机负责收音，耳机/骨传导只负责播放，用来避开部分耳机麦克风的滋滋电流声；修复经典版检查更新地址，后续会读取 classic-version.json。云更新不强制。"
+  "notes": "经典版：继续使用手机麦克风收音、耳机播放；新增更强的静音底噪门和轻微去高频毛刺处理，用来减少持续滋滋底噪；不继续锐化人声，尽量保留靠近手机说话时的人声清晰度。云更新不强制。"
 }
