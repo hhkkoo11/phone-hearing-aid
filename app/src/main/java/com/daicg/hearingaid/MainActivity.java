@@ -452,7 +452,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(gainText, matchWidthWrapHeight());
 
         gainSeek = new SeekBar(this);
-        gainSeek.setMax(478);
+        gainSeek.setMax(718);
         gainSeek.setProgress(Math.round((AppSettings.gain(this) - 0.2f) * 10.0f));
         gainSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -506,11 +506,11 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         maxButton.setAllCaps(false);
         maxButton.setOnClickListener(v -> {
             engine.setOutputLimit(0.96f);
-            setGainProgressForValue(48.0f);
+            setGainProgressForValue(72.0f);
             toast("\u5df2\u5230\u6700\u5927\u6863\uff0c\u8bf7\u6ce8\u610f\u9632\u6b62\u5578\u53eb\u548c\u8033\u75db");
         });
         root.addView(maxButton, matchWidthFixedHeight(48));
-        root.addView(makeHelpText("\u6700\u5927\u6863\uff1a\u8fd9\u662f\u8d85\u5927\u58f0\u6863\u3002\u5982\u679c\u6709\u6ecb\u6ecb\u58f0\u3001\u5578\u53eb\u6216\u523a\u8033\uff0c\u9a6c\u4e0a\u6309 -\u3002"), matchWidthWrapHeight());
+        root.addView(makeHelpText("\u6700\u5927\u6863\uff1a\u8fd9\u662f 72 \u500d\u8d85\u5927\u58f0\u6863\u3002\u5982\u679c\u6709\u6ecb\u6ecb\u58f0\u3001\u5578\u53eb\u6216\u523a\u8033\uff0c\u9a6c\u4e0a\u6309 -\u3002"), matchWidthWrapHeight());
 
         TextView levelLabel = new TextView(this);
         levelLabel.setText("\u6536\u97f3\u53cd\u5e94");

@@ -1,7 +1,7 @@
 {
-  "versionCode": 60,
-  "versionName": "5.19",
+  "versionCode": 61,
+  "versionName": "5.20",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "耳机麦克风测试版：蓝牙日常模式临时改为耳机麦克风收音，保持远距离/5米远距离/回声消除关闭，降噪开启，最大增益仍为 48 倍。用于对比手机麦克风距离受限时，耳机收音是否更合适。云更新不强制。"
+  "notes": "72倍超大声测试版：继续使用耳机麦克风收音，保持远距离/5米远距离/回声消除关闭，降噪开启；最大增益从 48 倍提高到 72 倍，最大档同步为 72 倍。若出现滋滋声、啸叫或刺耳，请立即降低增益。云更新不强制。"
 }
