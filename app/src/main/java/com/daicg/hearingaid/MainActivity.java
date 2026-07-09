@@ -100,7 +100,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private final Runnable volumeSyncPoller = new Runnable() {
         @Override
         public void run() {
-            syncGainFromSystemVolumeIfChanged();
+            rememberSystemVolume();
             mainHandler.postDelayed(this, 350);
         }
     };
@@ -109,7 +109,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         @Override
         public void onChange(boolean selfChange) {
             super.onChange(selfChange);
-            syncGainFromSystemVolume();
+            rememberSystemVolume();
         }
     };
 
@@ -329,7 +329,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7ecf\u5178\u7248 2.9\uff1a\u4eba\u58f0\u4e3b\u4f53\u66f4\u5927");
+        versionText.setText("\u7ecf\u5178\u7248 3.0\uff1a\u4fee\u590d\u589e\u76ca\u8c03\u8282");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -955,29 +955,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         lastSeenSystemVolume = targetVolume;
     }
 
-    private void syncGainFromSystemVolume() {
-        if (!isSyncPhoneVolumeEnabled() || gainSeek == null) {
-            return;
-        }
-        int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-        int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-        lastSeenSystemVolume = currentVolume;
-        int progress = Math.round((currentVolume / (float) Math.max(1, maxVolume)) * gainSeek.getMax());
-        suppressVolumeSync = true;
-        try {
-            gainSeek.setProgress(Math.max(0, Math.min(progress, gainSeek.getMax())));
-        } finally {
-            suppressVolumeSync = false;
-        }
-    }
-
-    private void syncGainFromSystemVolumeIfChanged() {
-        if (!isSyncPhoneVolumeEnabled() || gainSeek == null) {
-            return;
-        }
-        int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-        if (currentVolume != lastSeenSystemVolume) {
-            syncGainFromSystemVolume();
+    private void rememberSystemVolume() {
+        if (audioManager != null) {
+            lastSeenSystemVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
         }
     }
 
