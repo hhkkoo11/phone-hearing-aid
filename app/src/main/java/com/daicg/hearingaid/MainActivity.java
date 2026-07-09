@@ -73,6 +73,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private Switch pocketModeSwitch;
     private Switch wiredAutoStartSwitch;
     private Switch voiceSwitch;
+    private Switch ownVoiceSwitch;
     private Switch farPickupSwitch;
     private Switch noiseSwitch;
     private Switch agcSwitch;
@@ -87,6 +88,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private boolean downloadReceiverRegistered;
     private boolean suppressSwitchCallback;
     private boolean voiceEnhancementEnabled = true;
+    private boolean ownVoiceSuppressionEnabled = true;
     private boolean farPickupEnabled = true;
     private boolean noiseSuppressionEnabled = true;
     private boolean automaticGainEnabled;
@@ -550,6 +552,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 "\u4e3b\u8981\u8ba9\u8bf4\u8bdd\u58f0\u66f4\u6e05\u695a\uff0c\u5c11\u4e00\u70b9\u95f7\u3002",
                 this::setVoiceEnhancementEnabled);
 
+        ownVoiceSwitch = addSettingSwitch(
+                content,
+                "\u51cf\u5c11\u81ea\u5df1\u58f0\u97f3",
+                ownVoiceSuppressionEnabled,
+                "\u81ea\u5df1\u8bf4\u8bdd\u5f88\u54cd\u65f6\u81ea\u52a8\u538b\u4f4e\u8033\u673a\u56de\u653e\uff0c\u5c3d\u91cf\u51cf\u5c11\u56de\u58f0\u548c\u6162\u534a\u62cd\u3002",
+                this::setOwnVoiceSuppressionEnabled);
+
         farPickupSwitch = addSettingSwitch(
                 content,
                 "\u8fdc\u8ddd\u79bb\u6536\u58f0",
@@ -980,6 +989,12 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         voiceEnhancementEnabled = enabled;
         engine.setVoiceEnhancementEnabled(enabled);
         setSwitchChecked(voiceSwitch, enabled);
+    }
+
+    private void setOwnVoiceSuppressionEnabled(boolean enabled) {
+        ownVoiceSuppressionEnabled = enabled;
+        engine.setOwnVoiceSuppressionEnabled(enabled);
+        setSwitchChecked(ownVoiceSwitch, enabled);
     }
 
     private void setFarPickupEnabled(boolean enabled) {

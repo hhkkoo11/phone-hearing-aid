@@ -47,6 +47,7 @@ public final class HearingEngine {
     private boolean voiceEnhancementEnabled = true;
     private boolean farPickupEnabled = true;
     private boolean feedbackProtectionEnabled = true;
+    private boolean ownVoiceSuppressionEnabled = true;
 
     public HearingEngine(Context context, Listener listener) {
         this.context = context.getApplicationContext();
@@ -85,6 +86,10 @@ public final class HearingEngine {
 
     public void setFeedbackProtectionEnabled(boolean enabled) {
         this.feedbackProtectionEnabled = enabled;
+    }
+
+    public void setOwnVoiceSuppressionEnabled(boolean enabled) {
+        this.ownVoiceSuppressionEnabled = enabled;
     }
 
     public void start() {
@@ -203,6 +208,7 @@ public final class HearingEngine {
 
             short[] buffer = new short[frameBuffer];
             VoiceProcessor voiceProcessor = new VoiceProcessor();
+            OwnVoiceDucker ownVoiceDucker = new OwnVoiceDucker();
             FeedbackGuard feedbackGuard = new FeedbackGuard();
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
@@ -215,7 +221,8 @@ public final class HearingEngine {
                 }
                 float level = processAndMeasure(buffer, read, gain,
                         outputLimit, voiceEnhancementEnabled, farPickupEnabled,
-                        voiceProcessor, feedbackGuard);
+                        ownVoiceSuppressionEnabled, voiceProcessor, ownVoiceDucker,
+                        feedbackGuard);
                 if (feedbackProtectionEnabled && feedbackGuard.shouldReduceGain()
                         && gain > 2.0f) {
                     gain = Math.max(2.0f, gain * 0.86f);
@@ -254,8 +261,11 @@ public final class HearingEngine {
     }
 
     private static float processAndMeasure(short[] buffer, int length, float gain, float outputLimit,
-            boolean enhanceVoice, boolean farPickup, VoiceProcessor voiceProcessor,
-            FeedbackGuard feedbackGuard) {
+            boolean enhanceVoice, boolean farPickup, boolean suppressOwnVoice,
+            VoiceProcessor voiceProcessor, OwnVoiceDucker ownVoiceDucker, FeedbackGuard feedbackGuard) {
+        float ownVoiceMultiplier = suppressOwnVoice
+                ? ownVoiceDucker.multiplierFor(buffer, length)
+                : 1.0f;
         long sum = 0L;
         int peak = 0;
         int limit = Math.round(Short.MAX_VALUE * outputLimit);
@@ -272,7 +282,7 @@ public final class HearingEngine {
                     input *= 0.35f;
                 }
             }
-            int sample = Math.round(input * gain);
+            int sample = Math.round(input * gain * ownVoiceMultiplier);
             if (sample > Short.MAX_VALUE) {
                 sample = Short.MAX_VALUE;
             } else if (sample < Short.MIN_VALUE) {
@@ -427,6 +437,30 @@ public final class HearingEngine {
             previousPresenceInput = input;
             smoothedPresence = smoothedPresence * 0.72f + edge * 0.28f;
             return input + smoothedPresence * 0.32f;
+        }
+    }
+
+    private static final class OwnVoiceDucker {
+        private int holdFrames;
+
+        float multiplierFor(short[] buffer, int length) {
+            long sum = 0L;
+            int peak = 0;
+            for (int i = 0; i < length; i++) {
+                int abs = Math.abs(buffer[i]);
+                sum += abs;
+                if (abs > peak) {
+                    peak = abs;
+                }
+            }
+            float average = sum / (float) Math.max(1, length) / Short.MAX_VALUE;
+            float peakLevel = peak / (float) Short.MAX_VALUE;
+            if (average > 0.055f && peakLevel > 0.20f) {
+                holdFrames = 56;
+            } else if (holdFrames > 0) {
+                holdFrames--;
+            }
+            return holdFrames > 0 ? 0.22f : 1.0f;
         }
     }
 
