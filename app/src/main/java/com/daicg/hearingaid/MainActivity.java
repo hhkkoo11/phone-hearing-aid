@@ -274,6 +274,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     public void onGainReduced(float gain) {
         runOnUiThread(() -> {
             setGainProgressForValue(gain);
+            restartListeningServiceIfActive();
             toast("\u68c0\u6d4b\u5230\u5578\u53eb\u98ce\u9669\uff0c\u5df2\u81ea\u52a8\u964d\u4f4e\u589e\u76ca");
         });
     }
@@ -361,7 +362,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 3.8\uff1a\u606f\u5c4f\u7ee7\u7eed\u52a9\u542c");
+        versionText.setText("\u7248\u672c 3.9\uff1a\u540e\u53f0\u7a33\u5b9a\u4e0e 5x \u9ed8\u8ba4");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -401,7 +402,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(makeHelpText("\u542c\u6b4c/\u5237\u89c6\u9891\u65f6\u70b9\u6682\u505c\uff0c\u8033\u673a\u5c31\u5f53\u666e\u901a\u8033\u673a\u7528\uff1b\u9700\u8981\u52a9\u542c\u65f6\u518d\u6062\u590d\u3002"), matchWidthWrapHeight());
 
         gainText = new TextView(this);
-        gainText.setText("\u589e\u76ca 2.0x");
+        gainText.setText(String.format(Locale.US, "\u589e\u76ca %.1fx", AppSettings.gain(this)));
         gainText.setTextSize(16);
         gainText.setTextColor(0xFF10231F);
         gainText.setPadding(0, dp(28), 0, dp(8));
@@ -409,13 +410,16 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
         gainSeek = new SeekBar(this);
         gainSeek.setMax(238);
-        gainSeek.setProgress(18);
+        gainSeek.setProgress(Math.round((AppSettings.gain(this) - 0.2f) * 10.0f));
         gainSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float gain = 0.2f + progress / 10.0f;
                 engine.setGain(gain);
                 gainText.setText(String.format("\u589e\u76ca %.1fx", gain));
+                AppSettings.prefs(MainActivity.this).edit()
+                        .putFloat(AppSettings.KEY_GAIN, gain)
+                        .apply();
             }
 
             @Override
@@ -424,6 +428,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
+                restartListeningServiceIfActive();
             }
         });
         root.addView(gainSeek, matchWidthWrapHeight());
@@ -1327,7 +1332,17 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private void adjustGainBy(float delta) {
         float currentGain = 0.2f + gainSeek.getProgress() / 10.0f;
         setGainProgressForValue(currentGain + delta);
+        restartListeningServiceIfActive();
         speakOncePerBurst(delta > 0 ? "\u589e\u5927" : "\u51cf\u5c0f");
+    }
+
+    private void restartListeningServiceIfActive() {
+        if (!HearingAidService.isActive()) {
+            return;
+        }
+        HearingAidService.stop(this);
+        HearingAidService.start(this);
+        setRunningUi(true);
     }
 
     private void syncSystemVolumeFromGain() {
@@ -1573,7 +1588,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSelfVoiceReductionEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(2.5f);
+        setGainProgressForValue(AppSettings.gain(this));
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         toast("\u5df2\u5207\u6362\u5230\u5b89\u5168\u6a21\u5f0f");
     }
@@ -1603,7 +1618,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSelfVoiceReductionEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(4.0f);
+        setGainProgressForValue(AppSettings.gain(this));
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         if (announce) {
             speak("\u84dd\u7259\u6a21\u5f0f");
@@ -1633,7 +1648,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 && AppSettings.hasSelfVoiceProfile(this));
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(5.0f);
+        setGainProgressForValue(AppSettings.gain(this));
         updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
         if (announce) {
             speak("\u6709\u7ebf\u6a21\u5f0f");
@@ -1654,7 +1669,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(4.0f);
+        setGainProgressForValue(AppSettings.gain(this));
         updateModeFeedback(AppSettings.MODE_POCKET);
         speak("\u53e3\u888b\u6a21\u5f0f\u5df2\u5f00\u542f");
         toast("\u5df2\u5207\u6362\u5230\u53e3\u888b\u6a21\u5f0f");
@@ -1673,7 +1688,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSelfVoiceReductionEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(12.0f);
+        setGainProgressForValue(AppSettings.gain(this));
         setSystemMusicVolumeMax();
         updateModeFeedback(AppSettings.MODE_BONE_CONDUCTION);
         speak("\u9aa8\u4f20\u5bfc\u6a21\u5f0f");
@@ -1693,7 +1708,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(true);
-        setGainProgressForValue(7.0f);
+        setGainProgressForValue(AppSettings.gain(this));
         updateModeFeedback(AppSettings.MODE_SEVERE);
         speak("\u91cd\u5ea6\u6a21\u5f0f");
     }

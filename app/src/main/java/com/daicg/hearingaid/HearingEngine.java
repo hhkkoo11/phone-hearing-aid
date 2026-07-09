@@ -656,7 +656,7 @@ public final class HearingEngine {
                         && signature.peakRatio < 20.0f
                         && signature.diffRatio < 2.6f;
             }
-            return signature.averageAbs > (gain >= 10.0f ? 520.0f : 760.0f)
+            return signature.averageAbs > (gain >= 10.0f ? 420.0f : 560.0f)
                     && signature.peakRatio < 18.0f
                     && signature.diffRatio < 2.8f
                     && signature.zeroCrossingRate < 0.30f;
@@ -666,14 +666,14 @@ public final class HearingEngine {
             float target;
             if (nearSelfTalk) {
                 if (boneConductionNoiseControlEnabled) {
-                    target = gain >= 10.0f ? 0.34f : 0.46f;
+                    target = gain >= 10.0f ? 0.22f : 0.32f;
                 } else {
                     target = gain >= 10.0f ? 0.52f : 0.68f;
                 }
             } else {
                 target = 1.0f;
             }
-            float speed = target < selfTalkDuck ? 0.58f : 0.08f;
+            float speed = target < selfTalkDuck ? 0.74f : 0.06f;
             selfTalkDuck += (target - selfTalkDuck) * speed;
             return selfTalkDuck;
         }

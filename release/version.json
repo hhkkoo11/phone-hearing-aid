@@ -1,7 +1,7 @@
 {
-  "versionCode": 29,
-  "versionName": "3.8",
+  "versionCode": 30,
+  "versionName": "3.9",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "修复息屏后助听停止的问题：开始助听后统一交给前台服务运行，并增加轻量息屏保活锁，屏幕关闭后仍继续收音和输出到耳机。通知栏会显示助听运行中；如仍被系统杀掉，请在手机系统里允许本 App 后台运行/省电不限制。云更新不强制。"
+  "notes": "后台稳定性和增益修复：默认增益改为 5x，用户调好的增益会保存，切回主页、重新打开或后台服务重启后不再跳到 20x/12x；开始助听后由前台服务持续运行，划掉界面、切回主屏、息屏时尽量继续收音；骨传导本人说话压低更积极，减少自己的声音慢半拍和怪异感。云更新不强制。"
 }

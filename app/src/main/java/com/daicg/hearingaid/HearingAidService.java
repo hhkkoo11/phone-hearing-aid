@@ -69,6 +69,14 @@ public final class HearingAidService extends Service implements HearingEngine.Li
     }
 
     @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        if (!AppSettings.autoListenPaused(this)) {
+            HearingAidService.start(this);
+        }
+        super.onTaskRemoved(rootIntent);
+    }
+
+    @Override
     public IBinder onBind(Intent intent) {
         return null;
     }
@@ -99,11 +107,12 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     private void applySavedMode() {
         String mode = AppSettings.sceneMode(this);
+        float savedGain = AppSettings.gain(this);
         applySelfVoiceProfile();
         boolean profileEnabled = AppSettings.selfVoiceProfileEnabled(this)
                 && AppSettings.hasSelfVoiceProfile(this);
         if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
-            engine.setGain(5.0f);
+            engine.setGain(savedGain);
             engine.setOutputLimit(0.78f);
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
@@ -114,7 +123,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setNoiseSuppressionEnabled(true);
             engine.setAutomaticGainEnabled(false);
         } else if (AppSettings.MODE_POCKET.equals(mode)) {
-            engine.setGain(4.0f);
+            engine.setGain(savedGain);
             engine.setOutputLimit(0.72f);
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
@@ -125,7 +134,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setNoiseSuppressionEnabled(true);
             engine.setAutomaticGainEnabled(false);
         } else if (AppSettings.MODE_SEVERE.equals(mode)) {
-            engine.setGain(7.0f);
+            engine.setGain(savedGain);
             engine.setOutputLimit(0.86f);
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);
@@ -136,7 +145,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setNoiseSuppressionEnabled(true);
             engine.setAutomaticGainEnabled(true);
         } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
-            engine.setGain(12.0f);
+            engine.setGain(savedGain);
             engine.setOutputLimit(0.90f);
             engine.setBoneConductionNoiseControlEnabled(true);
             engine.setVoiceEnhancementEnabled(true);
@@ -148,7 +157,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setAutomaticGainEnabled(false);
             setSystemMusicVolumeMax();
         } else {
-            engine.setGain(4.0f);
+            engine.setGain(savedGain);
             engine.setOutputLimit(0.74f);
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setVoiceEnhancementEnabled(true);

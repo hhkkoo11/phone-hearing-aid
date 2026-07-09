@@ -19,6 +19,8 @@ final class AppSettings {
     static final String KEY_SELF_VOICE_PROFILE_DIFF = "self_voice_profile_diff";
     static final String KEY_SELF_VOICE_PROFILE_PEAK = "self_voice_profile_peak";
     static final String KEY_LONG_RANGE_PICKUP = "long_range_pickup";
+    static final String KEY_GAIN = "gain";
+    static final float DEFAULT_GAIN = 5.0f;
 
     static final String MODE_BLUETOOTH_DAILY = "bluetooth_daily";
     static final String MODE_WIRED_INDOOR = "wired_indoor";
@@ -73,5 +75,11 @@ final class AppSettings {
 
     static boolean longRangePickupEnabled(Context context) {
         return prefs(context).getBoolean(KEY_LONG_RANGE_PICKUP, false);
+    }
+
+    static float gain(Context context) {
+        return Math.max(0.2f, Math.min(
+                prefs(context).getFloat(KEY_GAIN, DEFAULT_GAIN),
+                24.0f));
     }
 }
