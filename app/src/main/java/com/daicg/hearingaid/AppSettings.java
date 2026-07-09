@@ -79,26 +79,33 @@ final class AppSettings {
         }
         if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE)
                 != PackageManager.PERMISSION_GRANTED) {
-            return true;
+            clearCallState(context);
+            return false;
         }
         TelephonyManager telephonyManager =
                 (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         if (telephonyManager == null) {
-            return true;
+            clearCallState(context);
+            return false;
         }
         try {
             int state = telephonyManager.getCallState();
             if (state == TelephonyManager.CALL_STATE_IDLE) {
-                prefs(context).edit()
-                        .putBoolean(KEY_CALL_ACTIVE, false)
-                        .putBoolean(KEY_CALL_ASSIST_WAS_LISTENING, false)
-                        .apply();
+                clearCallState(context);
                 return false;
             }
             return true;
         } catch (RuntimeException ignored) {
-            return true;
+            clearCallState(context);
+            return false;
         }
+    }
+
+    private static void clearCallState(Context context) {
+        prefs(context).edit()
+                .putBoolean(KEY_CALL_ACTIVE, false)
+                .putBoolean(KEY_CALL_ASSIST_WAS_LISTENING, false)
+                .apply();
     }
 
     static boolean outdoorDataCollectionEnabled(Context context) {

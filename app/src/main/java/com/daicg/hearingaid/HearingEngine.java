@@ -638,30 +638,43 @@ public final class HearingEngine {
         return bluetooth;
     }
 
-    @SuppressLint("MissingPermission")
     public boolean hasConnectedBluetoothAudioProfile() {
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
             return false;
         }
-        if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
-                != PackageManager.PERMISSION_GRANTED) {
+        if (!hasBluetoothConnectPermission()) {
             return false;
         }
-        return bluetoothAdapter.getProfileConnectionState(BluetoothProfile.A2DP)
-                == BluetoothProfile.STATE_CONNECTED
-                || bluetoothAdapter.getProfileConnectionState(BluetoothProfile.HEADSET)
-                == BluetoothProfile.STATE_CONNECTED
-                || bluetoothAdapter.getProfileConnectionState(BluetoothProfile.HEARING_AID)
-                == BluetoothProfile.STATE_CONNECTED
-                || getLeAudioConnectionState() == BluetoothProfile.STATE_CONNECTED;
+        try {
+            return bluetoothAdapter.getProfileConnectionState(BluetoothProfile.A2DP)
+                    == BluetoothAdapter.STATE_CONNECTED
+                    || bluetoothAdapter.getProfileConnectionState(BluetoothProfile.HEADSET)
+                    == BluetoothAdapter.STATE_CONNECTED
+                    || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    && bluetoothAdapter.getProfileConnectionState(BluetoothProfile.HEARING_AID)
+                    == BluetoothAdapter.STATE_CONNECTED)
+                    || getLeAudioConnectionState() == BluetoothAdapter.STATE_CONNECTED;
+        } catch (SecurityException ignored) {
+            return false;
+        }
     }
 
+    @SuppressLint("MissingPermission")
     private int getLeAudioConnectionState() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !hasBluetoothConnectPermission()) {
+            return BluetoothAdapter.STATE_DISCONNECTED;
+        }
         try {
             return bluetoothAdapter.getProfileConnectionState(BluetoothProfile.LE_AUDIO);
         } catch (Throwable ignored) {
-            return BluetoothProfile.STATE_DISCONNECTED;
+            return BluetoothAdapter.STATE_DISCONNECTED;
         }
+    }
+
+    private boolean hasBluetoothConnectPermission() {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+                || context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
+                == PackageManager.PERMISSION_GRANTED;
     }
 
     private static boolean isWired(int type) {
@@ -676,8 +689,9 @@ public final class HearingEngine {
     private static boolean isBluetooth(int type) {
         return type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
                 || type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
-                || type == AudioDeviceInfo.TYPE_BLE_HEADSET
-                || type == AudioDeviceInfo.TYPE_BLE_SPEAKER;
+                || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                && (type == AudioDeviceInfo.TYPE_BLE_HEADSET
+                || type == AudioDeviceInfo.TYPE_BLE_SPEAKER));
     }
 
     private static boolean isPhoneMicrophone(int type) {

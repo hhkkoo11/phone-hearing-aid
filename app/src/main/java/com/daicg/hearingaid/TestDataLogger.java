@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Environment;
 import android.os.PowerManager;
 import android.os.SystemClock;
@@ -229,8 +230,9 @@ final class TestDataLogger {
                     || type == AudioDeviceInfo.TYPE_USB_ACCESSORY;
             bluetooth |= type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
                     || type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
-                    || type == AudioDeviceInfo.TYPE_BLE_HEADSET
-                    || type == AudioDeviceInfo.TYPE_BLE_SPEAKER;
+                    || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                    && (type == AudioDeviceInfo.TYPE_BLE_HEADSET
+                    || type == AudioDeviceInfo.TYPE_BLE_SPEAKER));
         }
         if (wired) {
             return "wired";

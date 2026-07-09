@@ -1,6 +1,7 @@
 package com.daicg.hearingaid;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
@@ -396,7 +397,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 5.3\uff1a\u4fee\u590d\u8bef\u5224\u901a\u8bdd\u4e2d");
+        versionText.setText("\u7248\u672c 5.4\uff1a\u7a33\u56fa\u901a\u8bdd\u548c\u84dd\u7259\u6743\u9650");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -458,7 +459,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float gain = 0.2f + progress / 10.0f;
                 engine.setGain(gain);
-                gainText.setText(String.format("\u589e\u76ca %.1fx", gain));
+                gainText.setText(String.format(Locale.US, "\u589e\u76ca %.1fx", gain));
                 AppSettings.prefs(MainActivity.this).edit()
                         .putFloat(AppSettings.KEY_GAIN, gain)
                         .apply();
@@ -1177,6 +1178,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void registerDownloadReceiverIfNeeded() {
         if (downloadReceiverRegistered) {
             return;
@@ -2159,6 +2161,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         registerReceiver(routeReceiver, filter);
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void registerLevelReceiver() {
         IntentFilter filter = new IntentFilter(HearingAidService.ACTION_LEVEL);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

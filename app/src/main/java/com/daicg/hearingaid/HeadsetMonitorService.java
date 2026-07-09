@@ -1,5 +1,6 @@
 package com.daicg.hearingaid;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
@@ -69,9 +70,14 @@ public final class HeadsetMonitorService extends Service {
             audioManager.registerAudioDeviceCallback(audioDeviceCallback, null);
             audioCallbackRegistered = true;
         }
-        registerReceiver(receiver, routeFilter());
+        registerRouteReceiver();
         receiverRegistered = true;
         checkHeadsetAndStart();
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private void registerRouteReceiver() {
+        registerReceiver(receiver, routeFilter());
     }
 
     @Override
