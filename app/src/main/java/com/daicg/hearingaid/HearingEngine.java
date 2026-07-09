@@ -338,6 +338,7 @@ public final class HearingEngine {
         boolean speechLikeFrame = voiceProcessor.isLikelySpeechFrame(frameSignature);
         boolean outdoorMusicNoiseFrame = voiceProcessor.isLikelyOutdoorMusicNoise(frameSignature, gain);
         boolean electricNoiseFrame = voiceProcessor.isLikelyElectricNoise(frameSignature, gain);
+        boolean harshHissFrame = voiceProcessor.isLikelyHarshHiss(frameSignature, gain);
         boolean nearSelfTalkFrame = reduceSelfVoice
                 && (profileMatched || voiceProcessor.isLikelyNearSelfTalk(frameSignature, gain));
         float selfTalkDuck = voiceProcessor.updateSelfTalkDuck(nearSelfTalkFrame, gain);
@@ -372,8 +373,8 @@ public final class HearingEngine {
                     input *= speechLikeFrame ? 0.62f : 0.16f;
                     absInput = Math.abs(input);
                 }
-                if (voiceProcessor.boneConductionNoiseControlEnabled && electricNoiseFrame) {
-                    input *= speechLikeFrame ? 0.42f : 0.08f;
+                if (voiceProcessor.boneConductionNoiseControlEnabled && (electricNoiseFrame || harshHissFrame)) {
+                    input *= speechLikeFrame ? 0.58f : 0.06f;
                     absInput = Math.abs(input);
                 }
                 if (diffuseNoiseFrame && absInput < (longRangePickup ? 540.0f : 480.0f)) {
@@ -462,8 +463,9 @@ public final class HearingEngine {
                 } else if (!longRangePickup && absInput < quietGate * 2.2f) {
                     input *= 0.62f;
                 }
-                if (voiceProcessor.boneConductionNoiseControlEnabled && speechLikeFrame && !electricNoiseFrame) {
-                    input *= gain >= 16.0f ? 1.18f : 1.28f;
+                if (voiceProcessor.boneConductionNoiseControlEnabled && speechLikeFrame
+                        && !electricNoiseFrame && !harshHissFrame) {
+                    input *= gain >= 16.0f ? 1.10f : 1.20f;
                 }
                 input *= selfTalkDuck;
             }
@@ -478,6 +480,8 @@ public final class HearingEngine {
                         ? compressAndLimit(sample, limit, voiceProcessor.boneConductionNoiseControlEnabled ? 0.60f : 0.52f,
                         voiceProcessor.boneConductionNoiseControlEnabled ? 0.20f : 0.16f)
                         : compressAndLimit(sample, limit);
+                sample = voiceProcessor.smoothOutput(sample, electricNoiseFrame || harshHissFrame,
+                        speechLikeFrame, gain);
             }
             buffer[i] = (short) sample;
             int absSample = Math.abs(sample);
@@ -732,6 +736,7 @@ public final class HearingEngine {
         private float highGainPrevious;
         private float boneOutdoorTail;
         private float boneOutdoorPrevious;
+        private float outputSmoother;
         private float selfTalkDuck = 1.0f;
         private boolean selfVoiceProfileEnabled;
         private float selfVoiceProfileZcr;
@@ -759,8 +764,8 @@ public final class HearingEngine {
         float voiceShape(float input) {
             float edge = input - previousPresenceInput;
             previousPresenceInput = input;
-            smoothedPresence = smoothedPresence * 0.66f + edge * 0.34f;
-            return input * 1.03f + smoothedPresence * 0.46f;
+            smoothedPresence = smoothedPresence * 0.74f + edge * 0.26f;
+            return input * 1.02f + smoothedPresence * 0.18f;
         }
 
         float highGainDeEcho(float input, float gain) {
@@ -769,7 +774,7 @@ public final class HearingEngine {
             float transientPart = input - roomTail * (boneConductionNoiseControlEnabled ? 0.58f : 0.42f);
             float edge = transientPart - highGainPrevious;
             highGainPrevious = transientPart;
-            float clarity = gain >= 16.0f ? 0.18f : 0.11f;
+            float clarity = gain >= 16.0f ? 0.05f : 0.08f;
             return transientPart + edge * clarity;
         }
 
@@ -779,9 +784,9 @@ public final class HearingEngine {
             float edge = transientPart - boneOutdoorPrevious;
             boneOutdoorPrevious = transientPart;
             if (speechLikeFrame) {
-                return transientPart * 1.18f + edge * 0.24f;
+                return transientPart * 1.12f + edge * 0.08f;
             }
-            return transientPart * 0.52f + edge * 0.04f;
+            return transientPart * 0.48f;
         }
 
         boolean isLikelyNearSelfTalk(VoiceSignature signature, float gain) {
@@ -845,6 +850,37 @@ public final class HearingEngine {
                     && signature.peakRatio < 7.2f
                     && signature.diffRatio < 1.05f
                     && signature.zeroCrossingRate < 0.18f;
+        }
+
+        boolean isLikelyHarshHiss(VoiceSignature signature, float gain) {
+            float averageLimit = gain >= 16.0f ? 1500.0f : 980.0f;
+            return signature.averageAbs > 22.0f
+                    && signature.averageAbs < averageLimit
+                    && signature.peakRatio < 13.0f
+                    && signature.diffRatio > 2.15f
+                    && signature.zeroCrossingRate > 0.20f;
+        }
+
+        int smoothOutput(int sample, boolean noiseFrame, boolean speechLikeFrame, float gain) {
+            float target = sample;
+            if (noiseFrame && !speechLikeFrame) {
+                target *= gain >= 16.0f ? 0.18f : 0.26f;
+            }
+            float keepPrevious;
+            if (noiseFrame) {
+                keepPrevious = speechLikeFrame ? 0.44f : 0.72f;
+            } else {
+                keepPrevious = gain >= 16.0f ? 0.30f : 0.20f;
+            }
+            outputSmoother = outputSmoother * keepPrevious + target * (1.0f - keepPrevious);
+            int cleaned = Math.round(outputSmoother);
+            if (cleaned > Short.MAX_VALUE) {
+                return Short.MAX_VALUE;
+            }
+            if (cleaned < Short.MIN_VALUE) {
+                return Short.MIN_VALUE;
+            }
+            return cleaned;
         }
 
         float updateSelfTalkDuck(boolean nearSelfTalk, float gain) {
