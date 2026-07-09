@@ -9,6 +9,9 @@ final class AppSettings {
     static final String KEY_LOUD_WARNING = "loud_warning";
     static final String KEY_SYNC_PHONE_VOLUME = "sync_phone_volume";
     static final String KEY_VOICE_GUIDE = "voice_guide";
+    static final String KEY_CALL_ASSIST = "call_assist";
+    static final String KEY_CALL_ACTIVE = "call_active";
+    static final String KEY_CALL_ASSIST_WAS_LISTENING = "call_assist_was_listening";
     static final String KEY_SCENE_MODE = "scene_mode";
     static final String KEY_WIRED_AUTO_START = "wired_auto_start";
     static final String KEY_AUTO_LISTEN_PAUSED = "auto_listen_paused";
@@ -55,6 +58,14 @@ final class AppSettings {
 
     static boolean voiceGuideEnabled(Context context) {
         return prefs(context).getBoolean(KEY_VOICE_GUIDE, true);
+    }
+
+    static boolean callAssistEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_CALL_ASSIST, true);
+    }
+
+    static boolean callActive(Context context) {
+        return prefs(context).getBoolean(KEY_CALL_ACTIVE, false);
     }
 
     static boolean wiredAutoStartEnabled(Context context) {

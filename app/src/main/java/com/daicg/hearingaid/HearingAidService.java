@@ -51,12 +51,22 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             stopSelf();
             return;
         }
+        if (AppSettings.callActive(this)) {
+            CallAssistReceiver.setVoiceCallVolumeMax(this);
+            stopSelf();
+            return;
+        }
         ensureEngine();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (AppSettings.autoListenPaused(this)) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        if (AppSettings.callActive(this)) {
+            CallAssistReceiver.setVoiceCallVolumeMax(this);
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -84,7 +94,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        if (active && !AppSettings.autoListenPaused(this)) {
+        if (active && !AppSettings.autoListenPaused(this) && !AppSettings.callActive(this)) {
             HearingAidService.start(this);
         }
         super.onTaskRemoved(rootIntent);

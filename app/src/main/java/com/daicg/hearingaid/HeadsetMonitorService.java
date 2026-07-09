@@ -107,6 +107,11 @@ public final class HeadsetMonitorService extends Service {
             HearingAidService.stop(this);
             return;
         }
+        if (AppSettings.callActive(this)) {
+            HearingAidService.stop(this);
+            CallAssistReceiver.setVoiceCallVolumeMax(this);
+            return;
+        }
         HearingEngine engine = new HearingEngine(this, NoopListener.INSTANCE);
         if (!MainActivity.isVisible()
                 && (engine.hasWiredOutput() || engine.hasBluetoothOutput())

@@ -99,6 +99,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private Switch loudWarningSwitch;
     private Switch syncPhoneVolumeSwitch;
     private Switch voiceGuideSwitch;
+    private Switch callAssistSwitch;
     private boolean suppressVolumeSync;
     private int lastSeenSystemVolume = -1;
     private long updateDownloadId = -1L;
@@ -375,7 +376,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 4.1\uff1a\u540e\u53f0\u670d\u52a1\u4e0e\u8bbe\u7f6e\u540c\u6b65\u4fee\u590d");
+        versionText.setText("\u7248\u672c 4.2\uff1a\u65b0\u589e\u901a\u8bdd\u653e\u5927\u517c\u5bb9");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -746,6 +747,21 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                             .apply();
                     if (isChecked) {
                         syncSystemVolumeFromGain();
+                    }
+                });
+
+        callAssistSwitch = addSettingSwitch(
+                content,
+                "\u6253\u7535\u8bdd\u65f6\u653e\u5927",
+                AppSettings.callAssistEnabled(this),
+                "\u6765\u7535\u6216\u901a\u8bdd\u65f6\uff0c\u81ea\u52a8\u628a\u7cfb\u7edf\u901a\u8bdd\u97f3\u91cf\u8c03\u5230\u6700\u5927\uff0c\u5e76\u6682\u505c\u666e\u901a\u52a9\u542c\u6536\u97f3\uff0c\u51cf\u5c11\u56de\u58f0\u548c\u5578\u53eb\u3002",
+                isChecked -> {
+                    AppSettings.prefs(this).edit()
+                            .putBoolean(AppSettings.KEY_CALL_ASSIST, isChecked)
+                            .apply();
+                    if (isChecked) {
+                        requestSetupPermissions();
+                        CallAssistReceiver.setVoiceCallVolumeMax(this);
                     }
                 });
 
@@ -1150,6 +1166,11 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 != PackageManager.PERMISSION_GRANTED) {
             permissions.add(Manifest.permission.BLUETOOTH_CONNECT);
         }
+        if (AppSettings.callAssistEnabled(this)
+                && checkSelfPermission(Manifest.permission.READ_PHONE_STATE)
+                != PackageManager.PERMISSION_GRANTED) {
+            permissions.add(Manifest.permission.READ_PHONE_STATE);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -1238,6 +1259,11 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void startListening() {
+        if (AppSettings.callActive(this)) {
+            CallAssistReceiver.setVoiceCallVolumeMax(this);
+            toast("\u6b63\u5728\u901a\u8bdd\u4e2d\uff0c\u5df2\u653e\u5927\u7535\u8bdd\u58f0\u97f3\uff0c\u6682\u4e0d\u5f00\u542f\u666e\u901a\u52a9\u542c\u6536\u97f3");
+            return;
+        }
         updateRouteStatus();
         applyAutoRouteMode(false);
         engine.stop();
