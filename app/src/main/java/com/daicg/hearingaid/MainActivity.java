@@ -1532,7 +1532,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             return;
         }
         int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-        float ratio = gainSeek.getProgress() / (float) Math.max(1, gainSeek.getMax());
+        float gain = 0.2f + gainSeek.getProgress() / 10.0f;
+        float ratio = gain >= 8.0f
+                ? Math.min(1.0f, 0.72f + ((gain - 8.0f) / 14.0f) * 0.28f)
+                : gainSeek.getProgress() / (float) Math.max(1, gainSeek.getMax());
         int targetVolume = Math.max(1, Math.round(ratio * maxVolume));
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume, 0);
         lastSeenSystemVolume = targetVolume;

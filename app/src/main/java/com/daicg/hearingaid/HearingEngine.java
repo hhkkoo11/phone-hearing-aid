@@ -322,7 +322,7 @@ public final class HearingEngine {
         int peak = 0;
         boolean highGainEchoControl = gain >= 8.0f;
         float effectiveOutputLimit = highGainEchoControl
-                ? Math.min(outputLimit, gain >= 16.0f ? 0.84f : 0.88f)
+                ? Math.min(outputLimit, gain >= 16.0f ? 0.84f : 0.94f)
                 : outputLimit;
         int limit = Math.round(Short.MAX_VALUE * effectiveOutputLimit);
         VoiceSignature frameSignature = VoiceSignature.fromSamples(buffer, length);
@@ -466,6 +466,14 @@ public final class HearingEngine {
                 if (voiceProcessor.boneConductionNoiseControlEnabled && speechLikeFrame
                         && !electricNoiseFrame && !harshHissFrame) {
                     input *= gain >= 16.0f ? 1.10f : 1.20f;
+                }
+                if (gain < 15.5f && speechLikeFrame
+                        && !electricNoiseFrame && !harshHissFrame && !proximityBuzzFrame) {
+                    float lowGainVoiceLift = voiceProcessor.boneConductionNoiseControlEnabled ? 1.32f : 1.22f;
+                    if (longRangePickup) {
+                        lowGainVoiceLift += 0.08f;
+                    }
+                    input *= lowGainVoiceLift;
                 }
                 input *= selfTalkDuck;
             }
