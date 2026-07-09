@@ -61,11 +61,11 @@ public final class HearingEngine {
     }
 
     public void setGain(float gain) {
-        this.gain = Math.max(0.2f, Math.min(gain, 32.0f));
+        this.gain = Math.max(0.2f, Math.min(gain, 40.0f));
     }
 
     public void setOutputLimit(float outputLimit) {
-        this.outputLimit = Math.max(0.45f, Math.min(outputLimit, 0.90f));
+        this.outputLimit = Math.max(0.45f, Math.min(outputLimit, 0.98f));
     }
 
     public void setNoiseSuppressionEnabled(boolean enabled) {
@@ -291,14 +291,15 @@ public final class HearingEngine {
                 }
                 input *= ambientNoiseGate.multiplierFor(absInput, farPickup);
             }
-            int sample = Math.round(input * gain * ownVoiceMultiplier);
+            float sampleValue = input * gain * ownVoiceMultiplier;
+            if (enhanceVoice) {
+                sampleValue = compressAndLimit(sampleValue, limit);
+            }
+            int sample = Math.round(sampleValue);
             if (sample > Short.MAX_VALUE) {
                 sample = Short.MAX_VALUE;
             } else if (sample < Short.MIN_VALUE) {
                 sample = Short.MIN_VALUE;
-            }
-            if (enhanceVoice) {
-                sample = compressAndLimit(sample, limit);
             }
             buffer[i] = (short) sample;
             int absSample = Math.abs(sample);
@@ -310,12 +311,13 @@ public final class HearingEngine {
         return level;
     }
 
-    private static int compressAndLimit(int sample, int limit) {
-        int sign = sample < 0 ? -1 : 1;
-        int abs = Math.abs(sample);
-        int knee = Math.round(limit * 0.70f);
+    private static float compressAndLimit(float sample, int limit) {
+        float sign = sample < 0 ? -1.0f : 1.0f;
+        float abs = Math.abs(sample);
+        float knee = limit * 0.58f;
         if (abs > knee) {
-            abs = knee + Math.round((abs - knee) * 0.25f);
+            float range = Math.max(1.0f, limit - knee);
+            abs = knee + range * (1.0f - (float) Math.exp(-(abs - knee) / range));
         }
         if (abs > limit) {
             abs = limit;
@@ -506,17 +508,17 @@ public final class HearingEngine {
         private float floor = 120.0f;
 
         float multiplierFor(float absInput, boolean farPickup) {
-            float learnLimit = farPickup ? 360.0f : 460.0f;
+            float learnLimit = farPickup ? 460.0f : 560.0f;
             if (absInput < learnLimit) {
                 floor = floor * 0.995f + absInput * 0.005f;
             }
-            float low = Math.max(farPickup ? 90.0f : 130.0f, floor * 2.2f);
-            float mid = Math.max(farPickup ? 260.0f : 340.0f, floor * 3.5f);
+            float low = Math.max(farPickup ? 140.0f : 190.0f, floor * 2.8f);
+            float mid = Math.max(farPickup ? 360.0f : 460.0f, floor * 4.4f);
             if (absInput < low) {
-                return 0.18f;
+                return 0.08f;
             }
             if (absInput < mid) {
-                return 0.65f;
+                return 0.42f;
             }
             return 1.0f;
         }
