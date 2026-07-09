@@ -9,10 +9,13 @@ import android.widget.Toast;
 
 public final class HearingAidService extends Service implements HearingEngine.Listener {
     private static final String ACTION_REFRESH = "com.daicg.hearingaid.REFRESH";
+    static final String ACTION_LEVEL = "com.daicg.hearingaid.LEVEL";
+    static final String EXTRA_LEVEL = "level";
     private static volatile boolean active;
 
     private HearingEngine engine;
     private PowerManager.WakeLock wakeLock;
+    private long lastLevelBroadcastAt;
 
     public static void start(Context context) {
         try {
@@ -107,6 +110,15 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     @Override
     public void onLevel(float level) {
+        long now = android.os.SystemClock.uptimeMillis();
+        if (now - lastLevelBroadcastAt < 80L) {
+            return;
+        }
+        lastLevelBroadcastAt = now;
+        Intent intent = new Intent(ACTION_LEVEL);
+        intent.setPackage(getPackageName());
+        intent.putExtra(EXTRA_LEVEL, level);
+        sendBroadcast(intent);
     }
 
     @Override

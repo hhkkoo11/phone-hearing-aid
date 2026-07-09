@@ -107,6 +107,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private Uri pendingInstallUri;
     private boolean downloadReceiverRegistered;
     private boolean suppressSwitchCallback;
+    private boolean levelReceiverRegistered;
     private boolean voiceEnhancementEnabled = true;
     private boolean farPickupEnabled = true;
     private boolean longRangePickupEnabled;
@@ -173,6 +174,16 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
     };
 
+    private final BroadcastReceiver levelReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (!HearingAidService.ACTION_LEVEL.equals(intent.getAction())) {
+                return;
+            }
+            updateSoundReaction(intent.getFloatExtra(HearingAidService.EXTRA_LEVEL, 0.0f));
+        }
+    };
+
     private final AudioDeviceCallback audioDeviceCallback = new AudioDeviceCallback() {
         @Override
         public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
@@ -223,6 +234,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         });
         buildUi();
         registerRouteReceiver();
+        registerLevelReceiver();
         getContentResolver().registerContentObserver(
                 Settings.System.CONTENT_URI,
                 true,
@@ -264,6 +276,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         mainHandler.removeCallbacks(volumeSyncPoller);
         audioManager.unregisterAudioDeviceCallback(audioDeviceCallback);
         unregisterReceiver(routeReceiver);
+        if (levelReceiverRegistered) {
+            unregisterReceiver(levelReceiver);
+            levelReceiverRegistered = false;
+        }
         if (downloadReceiverRegistered) {
             unregisterReceiver(downloadReceiver);
             downloadReceiverRegistered = false;
@@ -380,7 +396,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 4.4\uff1a\u6536\u97f3\u53cd\u5e94\u66f4\u76f4\u89c2");
+        versionText.setText("\u7248\u672c 4.5\uff1a\u4fee\u590d\u6536\u97f3\u53cd\u5e94\u8df3\u52a8");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -2080,6 +2096,16 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(routeReceiver, filter);
+    }
+
+    private void registerLevelReceiver() {
+        IntentFilter filter = new IntentFilter(HearingAidService.ACTION_LEVEL);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(levelReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(levelReceiver, filter);
+        }
+        levelReceiverRegistered = true;
     }
 
     private void updateRouteStatus() {
