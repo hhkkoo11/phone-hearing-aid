@@ -42,7 +42,7 @@ public final class HearingEngine {
     private Thread audioThread;
     private float gain = 2.0f;
     private float outputLimit = 0.68f;
-    private boolean noiseSuppressionEnabled = true;
+    private boolean noiseSuppressionEnabled;
     private boolean automaticGainEnabled;
     private boolean voiceEnhancementEnabled = true;
     private boolean farPickupEnabled = true;
@@ -263,14 +263,9 @@ public final class HearingEngine {
         for (int i = 0; i < length; i++) {
             float input = buffer[i];
             if (enhanceVoice) {
-                input = voiceProcessor.highPass(input);
-                input = voiceProcessor.voiceShape(input);
                 float absInput = Math.abs(input);
-                if (farPickup && absInput > 45.0f && absInput < 2200.0f) {
-                    input *= absInput < 700.0f ? 1.28f : 1.18f;
-                }
-                if (absInput < (farPickup ? 45.0f : 90.0f)) {
-                    input *= 0.35f;
+                if (absInput < (farPickup ? 60.0f : 100.0f)) {
+                    input *= 0.20f;
                 }
             }
             int sample = Math.round(input * gain);
@@ -416,15 +411,13 @@ public final class HearingEngine {
     }
 
     private static final class VoiceProcessor {
-        private static final float HIGH_PASS_ALPHA = 0.985f;
-
         private float previousInput;
         private float previousOutput;
         private float previousPresenceInput;
         private float smoothedPresence;
 
         float highPass(float input) {
-            float output = HIGH_PASS_ALPHA * (previousOutput + input - previousInput);
+            float output = 0.985f * (previousOutput + input - previousInput);
             previousInput = input;
             previousOutput = output;
             return output;
@@ -434,7 +427,7 @@ public final class HearingEngine {
             float edge = input - previousPresenceInput;
             previousPresenceInput = input;
             smoothedPresence = smoothedPresence * 0.82f + edge * 0.18f;
-            return input * 1.01f + smoothedPresence * 0.12f;
+            return input;
         }
     }
 
