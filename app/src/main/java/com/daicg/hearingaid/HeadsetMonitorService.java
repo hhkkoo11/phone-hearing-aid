@@ -16,6 +16,8 @@ import android.os.IBinder;
 
 public final class HeadsetMonitorService extends Service {
     private AudioManager audioManager;
+    private boolean receiverRegistered;
+    private boolean audioCallbackRegistered;
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -63,8 +65,12 @@ public final class HeadsetMonitorService extends Service {
             return;
         }
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        audioManager.registerAudioDeviceCallback(audioDeviceCallback, null);
+        if (audioManager != null) {
+            audioManager.registerAudioDeviceCallback(audioDeviceCallback, null);
+            audioCallbackRegistered = true;
+        }
         registerReceiver(receiver, routeFilter());
+        receiverRegistered = true;
         checkHeadsetAndStart();
     }
 
@@ -76,8 +82,14 @@ public final class HeadsetMonitorService extends Service {
 
     @Override
     public void onDestroy() {
-        audioManager.unregisterAudioDeviceCallback(audioDeviceCallback);
-        unregisterReceiver(receiver);
+        if (audioManager != null && audioCallbackRegistered) {
+            audioManager.unregisterAudioDeviceCallback(audioDeviceCallback);
+            audioCallbackRegistered = false;
+        }
+        if (receiverRegistered) {
+            unregisterReceiver(receiver);
+            receiverRegistered = false;
+        }
         super.onDestroy();
     }
 

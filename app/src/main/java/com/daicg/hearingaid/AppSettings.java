@@ -20,6 +20,12 @@ final class AppSettings {
     static final String KEY_SELF_VOICE_PROFILE_PEAK = "self_voice_profile_peak";
     static final String KEY_LONG_RANGE_PICKUP = "long_range_pickup";
     static final String KEY_GAIN = "gain";
+    static final String KEY_VOICE_ENHANCEMENT = "voice_enhancement";
+    static final String KEY_FAR_PICKUP = "far_pickup";
+    static final String KEY_ECHO_CANCELLATION = "echo_cancellation";
+    static final String KEY_SELF_VOICE_REDUCTION = "self_voice_reduction";
+    static final String KEY_NOISE_SUPPRESSION = "noise_suppression";
+    static final String KEY_AUTOMATIC_GAIN = "automatic_gain";
     static final float DEFAULT_GAIN = 5.0f;
 
     static final String MODE_BLUETOOTH_DAILY = "bluetooth_daily";
@@ -81,5 +87,29 @@ final class AppSettings {
         return Math.max(0.2f, Math.min(
                 prefs(context).getFloat(KEY_GAIN, DEFAULT_GAIN),
                 24.0f));
+    }
+
+    static boolean voiceEnhancementEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_VOICE_ENHANCEMENT, true);
+    }
+
+    static boolean farPickupEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_FAR_PICKUP, true);
+    }
+
+    static boolean echoCancellationEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_ECHO_CANCELLATION, false);
+    }
+
+    static boolean selfVoiceReductionEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_SELF_VOICE_REDUCTION, true);
+    }
+
+    static boolean noiseSuppressionEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_NOISE_SUPPRESSION, true);
+    }
+
+    static boolean automaticGainEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_AUTOMATIC_GAIN, false);
     }
 }

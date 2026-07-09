@@ -115,6 +115,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private String activeAppliedMode;
     private String lastSpokenText = "";
     private long lastSpokenAtMillis;
+    private boolean suppressServiceRefresh;
 
     private final Runnable volumeSyncPoller = new Runnable() {
         @Override
@@ -194,8 +195,20 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         super.onCreate(savedInstanceState);
         engine = new HearingEngine(this, this);
         applySelfVoiceProfileToEngine();
+        voiceEnhancementEnabled = AppSettings.voiceEnhancementEnabled(this);
+        farPickupEnabled = AppSettings.farPickupEnabled(this);
         longRangePickupEnabled = AppSettings.longRangePickupEnabled(this);
+        echoCancellationEnabled = AppSettings.echoCancellationEnabled(this);
+        selfVoiceReductionEnabled = AppSettings.selfVoiceReductionEnabled(this);
+        noiseSuppressionEnabled = AppSettings.noiseSuppressionEnabled(this);
+        automaticGainEnabled = AppSettings.automaticGainEnabled(this);
+        engine.setVoiceEnhancementEnabled(voiceEnhancementEnabled);
+        engine.setFarPickupEnabled(farPickupEnabled);
         engine.setLongRangePickupEnabled(longRangePickupEnabled);
+        engine.setEchoCancellationEnabled(echoCancellationEnabled);
+        engine.setSelfVoiceReductionEnabled(selfVoiceReductionEnabled);
+        engine.setNoiseSuppressionEnabled(noiseSuppressionEnabled);
+        engine.setAutomaticGainEnabled(automaticGainEnabled);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         textToSpeech = new TextToSpeech(this, status -> {
@@ -362,7 +375,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 4.0\uff1a\u9aa8\u4f20\u5bfc\u8fd1\u8ddd\u79bb\u7535\u6d41\u58f0\u6291\u5236");
+        versionText.setText("\u7248\u672c 4.1\uff1a\u540e\u53f0\u670d\u52a1\u4e0e\u8bbe\u7f6e\u540c\u6b65\u4fee\u590d");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -1341,11 +1354,17 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void restartListeningServiceIfActive() {
+        refreshListeningServiceIfActive();
+    }
+
+    private void refreshListeningServiceIfActive() {
+        if (suppressServiceRefresh) {
+            return;
+        }
         if (!HearingAidService.isActive()) {
             return;
         }
-        HearingAidService.stop(this);
-        HearingAidService.start(this);
+        HearingAidService.refresh(this);
         setRunningUi(true);
     }
 
@@ -1414,13 +1433,17 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private void setVoiceEnhancementEnabled(boolean enabled) {
         voiceEnhancementEnabled = enabled;
         engine.setVoiceEnhancementEnabled(enabled);
+        AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_VOICE_ENHANCEMENT, enabled).apply();
         setSwitchChecked(voiceSwitch, enabled);
+        refreshListeningServiceIfActive();
     }
 
     private void setFarPickupEnabled(boolean enabled) {
         farPickupEnabled = enabled;
         engine.setFarPickupEnabled(enabled);
+        AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_FAR_PICKUP, enabled).apply();
         setSwitchChecked(farPickupSwitch, enabled);
+        refreshListeningServiceIfActive();
     }
 
     private void setLongRangePickupEnabled(boolean enabled) {
@@ -1428,18 +1451,23 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setLongRangePickupEnabled(enabled);
         AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_LONG_RANGE_PICKUP, enabled).apply();
         setSwitchChecked(longRangePickupSwitch, enabled);
+        refreshListeningServiceIfActive();
     }
 
     private void setEchoCancellationEnabled(boolean enabled) {
         echoCancellationEnabled = enabled;
         engine.setEchoCancellationEnabled(enabled);
+        AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_ECHO_CANCELLATION, enabled).apply();
         setSwitchChecked(echoSwitch, enabled);
+        refreshListeningServiceIfActive();
     }
 
     private void setSelfVoiceReductionEnabled(boolean enabled) {
         selfVoiceReductionEnabled = enabled;
         engine.setSelfVoiceReductionEnabled(enabled);
+        AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_SELF_VOICE_REDUCTION, enabled).apply();
         setSwitchChecked(selfVoiceSwitch, enabled);
+        refreshListeningServiceIfActive();
     }
 
     private void setSelfVoiceProfileEnabled(boolean enabled) {
@@ -1567,13 +1595,17 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private void setNoiseSuppressionEnabled(boolean enabled) {
         noiseSuppressionEnabled = enabled;
         engine.setNoiseSuppressionEnabled(enabled);
+        AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_NOISE_SUPPRESSION, enabled).apply();
         setSwitchChecked(noiseSwitch, enabled);
+        refreshListeningServiceIfActive();
     }
 
     private void setAutomaticGainEnabled(boolean enabled) {
         automaticGainEnabled = enabled;
         engine.setAutomaticGainEnabled(enabled);
+        AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_AUTOMATIC_GAIN, enabled).apply();
         setSwitchChecked(agcSwitch, enabled);
+        refreshListeningServiceIfActive();
     }
 
     private void setBoneNoiseControlEnabled(boolean enabled) {
@@ -1581,6 +1613,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void applySafeMode() {
+        suppressServiceRefresh = true;
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
         engine.setOutputLimit(0.62f);
         engine.setFeedbackProtectionEnabled(true);
@@ -1593,6 +1626,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
+        suppressServiceRefresh = false;
+        refreshListeningServiceIfActive();
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         toast("\u5df2\u5207\u6362\u5230\u5b89\u5168\u6a21\u5f0f");
     }
@@ -1610,6 +1645,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
             return;
         }
+        suppressServiceRefresh = true;
         activeAppliedMode = AppSettings.MODE_BLUETOOTH_DAILY;
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
         engine.setOutputLimit(0.74f);
@@ -1623,6 +1659,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
+        suppressServiceRefresh = false;
+        refreshListeningServiceIfActive();
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         if (announce) {
             speak("\u84dd\u7259\u6a21\u5f0f");
@@ -1639,6 +1677,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
             return;
         }
+        suppressServiceRefresh = true;
         activeAppliedMode = AppSettings.MODE_WIRED_INDOOR;
         saveMode(AppSettings.MODE_WIRED_INDOOR);
         engine.setOutputLimit(0.78f);
@@ -1653,6 +1692,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
+        suppressServiceRefresh = false;
+        refreshListeningServiceIfActive();
         updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
         if (announce) {
             speak("\u6709\u7ebf\u6a21\u5f0f");
@@ -1661,6 +1702,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void applyPocketMode() {
+        suppressServiceRefresh = true;
         activeAppliedMode = AppSettings.MODE_POCKET;
         saveMode(AppSettings.MODE_POCKET);
         engine.setOutputLimit(0.72f);
@@ -1674,12 +1716,15 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
+        suppressServiceRefresh = false;
+        refreshListeningServiceIfActive();
         updateModeFeedback(AppSettings.MODE_POCKET);
         speak("\u53e3\u888b\u6a21\u5f0f\u5df2\u5f00\u542f");
         toast("\u5df2\u5207\u6362\u5230\u53e3\u888b\u6a21\u5f0f");
     }
 
     private void applyBoneConductionMode() {
+        suppressServiceRefresh = true;
         activeAppliedMode = AppSettings.MODE_BONE_CONDUCTION;
         saveMode(AppSettings.MODE_BONE_CONDUCTION);
         engine.setOutputLimit(0.90f);
@@ -1694,12 +1739,15 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
         setSystemMusicVolumeMax();
+        suppressServiceRefresh = false;
+        refreshListeningServiceIfActive();
         updateModeFeedback(AppSettings.MODE_BONE_CONDUCTION);
         speak("\u9aa8\u4f20\u5bfc\u6a21\u5f0f");
         toast("\u5df2\u5f00\u542f\u9aa8\u4f20\u5bfc\u6a21\u5f0f\uff0c\u9ed8\u8ba4 12 \u500d\u6e05\u6670\u6863");
     }
 
     private void applySevereMode() {
+        suppressServiceRefresh = true;
         activeAppliedMode = AppSettings.MODE_SEVERE;
         saveMode(AppSettings.MODE_SEVERE);
         engine.setOutputLimit(0.86f);
@@ -1713,6 +1761,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(true);
         setGainProgressForValue(AppSettings.gain(this));
+        suppressServiceRefresh = false;
+        refreshListeningServiceIfActive();
         updateModeFeedback(AppSettings.MODE_SEVERE);
         speak("\u91cd\u5ea6\u6a21\u5f0f");
     }

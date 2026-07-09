@@ -8,6 +8,7 @@ import android.os.PowerManager;
 import android.widget.Toast;
 
 public final class HearingAidService extends Service implements HearingEngine.Listener {
+    private static final String ACTION_REFRESH = "com.daicg.hearingaid.REFRESH";
     private static volatile boolean active;
 
     private HearingEngine engine;
@@ -24,6 +25,18 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         context.stopService(new Intent(context, HearingAidService.class));
     }
 
+    public static void refresh(Context context) {
+        if (!active) {
+            return;
+        }
+        try {
+            Intent intent = new Intent(context, HearingAidService.class);
+            intent.setAction(ACTION_REFRESH);
+            context.startForegroundService(intent);
+        } catch (RuntimeException ignored) {
+        }
+    }
+
     public static boolean isActive() {
         return active;
     }
@@ -38,11 +51,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             stopSelf();
             return;
         }
-        active = true;
-        acquireWakeLock();
-        engine = new HearingEngine(this, this);
-        applySavedMode();
-        engine.start();
+        ensureEngine();
     }
 
     @Override
@@ -50,6 +59,11 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         if (AppSettings.autoListenPaused(this)) {
             stopSelf();
             return START_NOT_STICKY;
+        }
+        ensureEngine();
+        if (ACTION_REFRESH.equals(intent == null ? null : intent.getAction())) {
+            applySavedMode();
+            return START_STICKY;
         }
         if (!engine.isRunning()) {
             applySavedMode();
@@ -70,7 +84,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        if (!AppSettings.autoListenPaused(this)) {
+        if (active && !AppSettings.autoListenPaused(this)) {
             HearingAidService.start(this);
         }
         super.onTaskRemoved(rootIntent);
@@ -106,67 +120,77 @@ public final class HearingAidService extends Service implements HearingEngine.Li
     }
 
     private void applySavedMode() {
+        if (engine == null) {
+            return;
+        }
         String mode = AppSettings.sceneMode(this);
         float savedGain = AppSettings.gain(this);
         applySelfVoiceProfile();
         boolean profileEnabled = AppSettings.selfVoiceProfileEnabled(this)
                 && AppSettings.hasSelfVoiceProfile(this);
+        boolean voiceEnhancement = AppSettings.voiceEnhancementEnabled(this);
+        boolean farPickup = AppSettings.farPickupEnabled(this);
+        boolean longRangePickup = AppSettings.longRangePickupEnabled(this);
+        boolean echoCancellation = AppSettings.echoCancellationEnabled(this);
+        boolean selfVoiceReduction = AppSettings.selfVoiceReductionEnabled(this);
+        boolean noiseSuppression = AppSettings.noiseSuppressionEnabled(this);
+        boolean automaticGain = AppSettings.automaticGainEnabled(this);
         if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
             engine.setGain(savedGain);
             engine.setOutputLimit(0.78f);
             engine.setBoneConductionNoiseControlEnabled(false);
-            engine.setVoiceEnhancementEnabled(true);
-            engine.setFarPickupEnabled(false);
-            engine.setLongRangePickupEnabled(false);
-            engine.setEchoCancellationEnabled(false);
-            engine.setSelfVoiceReductionEnabled(profileEnabled);
-            engine.setNoiseSuppressionEnabled(true);
-            engine.setAutomaticGainEnabled(false);
+            engine.setVoiceEnhancementEnabled(voiceEnhancement);
+            engine.setFarPickupEnabled(farPickup);
+            engine.setLongRangePickupEnabled(longRangePickup);
+            engine.setEchoCancellationEnabled(echoCancellation);
+            engine.setSelfVoiceReductionEnabled(selfVoiceReduction && profileEnabled);
+            engine.setNoiseSuppressionEnabled(noiseSuppression);
+            engine.setAutomaticGainEnabled(automaticGain);
         } else if (AppSettings.MODE_POCKET.equals(mode)) {
             engine.setGain(savedGain);
             engine.setOutputLimit(0.72f);
             engine.setBoneConductionNoiseControlEnabled(false);
-            engine.setVoiceEnhancementEnabled(true);
-            engine.setFarPickupEnabled(false);
-            engine.setLongRangePickupEnabled(false);
-            engine.setEchoCancellationEnabled(false);
-            engine.setSelfVoiceReductionEnabled(false);
-            engine.setNoiseSuppressionEnabled(true);
-            engine.setAutomaticGainEnabled(false);
+            engine.setVoiceEnhancementEnabled(voiceEnhancement);
+            engine.setFarPickupEnabled(farPickup);
+            engine.setLongRangePickupEnabled(longRangePickup);
+            engine.setEchoCancellationEnabled(echoCancellation);
+            engine.setSelfVoiceReductionEnabled(selfVoiceReduction);
+            engine.setNoiseSuppressionEnabled(noiseSuppression);
+            engine.setAutomaticGainEnabled(automaticGain);
         } else if (AppSettings.MODE_SEVERE.equals(mode)) {
             engine.setGain(savedGain);
             engine.setOutputLimit(0.86f);
             engine.setBoneConductionNoiseControlEnabled(false);
-            engine.setVoiceEnhancementEnabled(true);
-            engine.setFarPickupEnabled(true);
-            engine.setLongRangePickupEnabled(true);
-            engine.setEchoCancellationEnabled(false);
-            engine.setSelfVoiceReductionEnabled(false);
-            engine.setNoiseSuppressionEnabled(true);
-            engine.setAutomaticGainEnabled(true);
+            engine.setVoiceEnhancementEnabled(voiceEnhancement);
+            engine.setFarPickupEnabled(farPickup);
+            engine.setLongRangePickupEnabled(longRangePickup);
+            engine.setEchoCancellationEnabled(echoCancellation);
+            engine.setSelfVoiceReductionEnabled(selfVoiceReduction);
+            engine.setNoiseSuppressionEnabled(noiseSuppression);
+            engine.setAutomaticGainEnabled(automaticGain);
         } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
             engine.setGain(savedGain);
             engine.setOutputLimit(0.90f);
             engine.setBoneConductionNoiseControlEnabled(true);
-            engine.setVoiceEnhancementEnabled(true);
-            engine.setFarPickupEnabled(true);
-            engine.setLongRangePickupEnabled(true);
-            engine.setEchoCancellationEnabled(false);
-            engine.setSelfVoiceReductionEnabled(true);
-            engine.setNoiseSuppressionEnabled(true);
-            engine.setAutomaticGainEnabled(false);
+            engine.setVoiceEnhancementEnabled(voiceEnhancement);
+            engine.setFarPickupEnabled(farPickup);
+            engine.setLongRangePickupEnabled(longRangePickup);
+            engine.setEchoCancellationEnabled(echoCancellation);
+            engine.setSelfVoiceReductionEnabled(selfVoiceReduction);
+            engine.setNoiseSuppressionEnabled(noiseSuppression);
+            engine.setAutomaticGainEnabled(automaticGain);
             setSystemMusicVolumeMax();
         } else {
             engine.setGain(savedGain);
             engine.setOutputLimit(0.74f);
             engine.setBoneConductionNoiseControlEnabled(false);
-            engine.setVoiceEnhancementEnabled(true);
-            engine.setFarPickupEnabled(true);
-            engine.setLongRangePickupEnabled(false);
-            engine.setEchoCancellationEnabled(false);
-            engine.setSelfVoiceReductionEnabled(true);
-            engine.setNoiseSuppressionEnabled(true);
-            engine.setAutomaticGainEnabled(false);
+            engine.setVoiceEnhancementEnabled(voiceEnhancement);
+            engine.setFarPickupEnabled(farPickup);
+            engine.setLongRangePickupEnabled(longRangePickup);
+            engine.setEchoCancellationEnabled(echoCancellation);
+            engine.setSelfVoiceReductionEnabled(selfVoiceReduction);
+            engine.setNoiseSuppressionEnabled(noiseSuppression);
+            engine.setAutomaticGainEnabled(automaticGain);
         }
         engine.setFeedbackProtectionEnabled(true);
     }
@@ -183,6 +207,9 @@ public final class HearingAidService extends Service implements HearingEngine.Li
     }
 
     private void applySelfVoiceProfile() {
+        if (engine == null) {
+            return;
+        }
         boolean enabled = AppSettings.selfVoiceProfileEnabled(this)
                 && AppSettings.hasSelfVoiceProfile(this);
         engine.setSelfVoiceProfile(
@@ -190,6 +217,18 @@ public final class HearingAidService extends Service implements HearingEngine.Li
                 AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_ZCR, 0.0f),
                 AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_DIFF, 0.0f),
                 AppSettings.prefs(this).getFloat(AppSettings.KEY_SELF_VOICE_PROFILE_PEAK, 0.0f));
+    }
+
+    private void ensureEngine() {
+        active = true;
+        acquireWakeLock();
+        if (engine == null) {
+            engine = new HearingEngine(this, this);
+        }
+        applySavedMode();
+        if (!engine.isRunning()) {
+            engine.start();
+        }
     }
 
     private void acquireWakeLock() {
