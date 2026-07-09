@@ -335,6 +335,8 @@ public final class HearingEngine {
                 && frameSignature.averageAbs < 520.0f;
         boolean proximityBuzzFrame = voiceProcessor.isLikelyProximityBuzz(frameSignature, gain);
         boolean diffuseNoiseFrame = voiceProcessor.isLikelyDiffuseNoise(frameSignature, longRangePickup);
+        boolean speechLikeFrame = voiceProcessor.isLikelySpeechFrame(frameSignature);
+        boolean outdoorMusicNoiseFrame = voiceProcessor.isLikelyOutdoorMusicNoise(frameSignature, gain);
         boolean nearSelfTalkFrame = reduceSelfVoice
                 && (profileMatched || voiceProcessor.isLikelyNearSelfTalk(frameSignature, gain));
         float selfTalkDuck = voiceProcessor.updateSelfTalkDuck(nearSelfTalkFrame, gain);
@@ -343,6 +345,9 @@ public final class HearingEngine {
             if (enhanceVoice) {
                 input = voiceProcessor.highPass(input);
                 input = voiceProcessor.voiceShape(input);
+                if (voiceProcessor.boneConductionNoiseControlEnabled) {
+                    input = voiceProcessor.boneOutdoorVoiceShape(input, speechLikeFrame);
+                }
                 if (highGainEchoControl) {
                     input = voiceProcessor.highGainDeEcho(input, gain);
                 }
@@ -362,26 +367,40 @@ public final class HearingEngine {
                     }
                     absInput = Math.abs(input);
                 }
+                if (voiceProcessor.boneConductionNoiseControlEnabled && outdoorMusicNoiseFrame) {
+                    input *= speechLikeFrame ? 0.54f : 0.24f;
+                    absInput = Math.abs(input);
+                }
                 if (diffuseNoiseFrame && absInput < (longRangePickup ? 540.0f : 480.0f)) {
-                    input *= longRangePickup ? 0.58f : 0.44f;
+                    if (voiceProcessor.boneConductionNoiseControlEnabled) {
+                        input *= longRangePickup ? 0.34f : 0.28f;
+                    } else {
+                        input *= longRangePickup ? 0.58f : 0.44f;
+                    }
                     absInput = Math.abs(input);
                 }
                 if (farPickup && absInput > 70.0f && absInput < 2200.0f) {
                     if (highGainEchoControl) {
-                        input *= voiceProcessor.boneConductionNoiseControlEnabled ? 1.02f : 1.14f;
+                        input *= voiceProcessor.boneConductionNoiseControlEnabled ? 0.90f : 1.14f;
                     } else {
-                        input *= voiceProcessor.boneConductionNoiseControlEnabled ? 1.12f : 1.45f;
+                        input *= voiceProcessor.boneConductionNoiseControlEnabled ? (speechLikeFrame ? 1.10f : 0.82f) : 1.45f;
                     }
                     absInput = Math.abs(input);
                 }
                 if (longRangePickup && !proximityBuzzFrame && absInput > 42.0f && absInput < 1450.0f) {
                     float longRangeBoost;
                     if (absInput < 180.0f) {
-                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled ? 1.58f : 1.82f;
+                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled
+                                ? (speechLikeFrame ? 1.34f : 0.78f)
+                                : 1.82f;
                     } else if (absInput < 680.0f) {
-                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled ? 1.68f : 1.96f;
+                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled
+                                ? (speechLikeFrame ? 1.74f : 0.88f)
+                                : 1.96f;
                     } else {
-                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled ? 1.22f : 1.35f;
+                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled
+                                ? (speechLikeFrame ? 1.24f : 0.82f)
+                                : 1.35f;
                     }
                     if (highGainEchoControl) {
                         longRangeBoost *= 0.78f;
@@ -395,7 +414,7 @@ public final class HearingEngine {
                         voiceForward += 0.04f;
                     }
                     if (voiceProcessor.boneConductionNoiseControlEnabled) {
-                        voiceForward -= 0.04f;
+                        voiceForward += speechLikeFrame ? 0.08f : -0.20f;
                     }
                     input *= voiceForward;
                     absInput = Math.abs(input);
@@ -676,6 +695,8 @@ public final class HearingEngine {
         private float smoothedPresence;
         private float roomTail;
         private float highGainPrevious;
+        private float boneOutdoorTail;
+        private float boneOutdoorPrevious;
         private float selfTalkDuck = 1.0f;
         private boolean selfVoiceProfileEnabled;
         private float selfVoiceProfileZcr;
@@ -717,6 +738,17 @@ public final class HearingEngine {
             return transientPart + edge * clarity;
         }
 
+        float boneOutdoorVoiceShape(float input, boolean speechLikeFrame) {
+            boneOutdoorTail = boneOutdoorTail * 0.992f + input * 0.008f;
+            float transientPart = input - boneOutdoorTail * (speechLikeFrame ? 0.34f : 0.62f);
+            float edge = transientPart - boneOutdoorPrevious;
+            boneOutdoorPrevious = transientPart;
+            if (speechLikeFrame) {
+                return transientPart * 1.04f + edge * 0.18f;
+            }
+            return transientPart * 0.72f + edge * 0.08f;
+        }
+
         boolean isLikelyNearSelfTalk(VoiceSignature signature, float gain) {
             if (!boneConductionNoiseControlEnabled) {
                 return gain >= 10.0f
@@ -749,6 +781,26 @@ public final class HearingEngine {
                     && signature.diffRatio < 1.35f
                     && signature.peakRatio < 10.0f
                     && signature.zeroCrossingRate < 0.16f;
+        }
+
+        boolean isLikelySpeechFrame(VoiceSignature signature) {
+            return signature.averageAbs > 110.0f
+                    && signature.averageAbs < 2600.0f
+                    && signature.peakRatio > 9.0f
+                    && signature.peakRatio < 34.0f
+                    && signature.diffRatio > 1.18f
+                    && signature.diffRatio < 4.2f
+                    && signature.zeroCrossingRate > 0.055f
+                    && signature.zeroCrossingRate < 0.38f;
+        }
+
+        boolean isLikelyOutdoorMusicNoise(VoiceSignature signature, float gain) {
+            float averageLimit = gain >= 16.0f ? 2200.0f : 1600.0f;
+            return signature.averageAbs > 90.0f
+                    && signature.averageAbs < averageLimit
+                    && signature.peakRatio < 12.0f
+                    && signature.diffRatio < 1.75f
+                    && signature.zeroCrossingRate < 0.24f;
         }
 
         float updateSelfTalkDuck(boolean nearSelfTalk, float gain) {
