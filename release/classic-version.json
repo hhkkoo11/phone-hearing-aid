@@ -1,7 +1,7 @@
 {
-  "versionCode": 10,
-  "versionName": "classic-1.9",
+  "versionCode": 11,
+  "versionName": "classic-2.0",
   "packageName": "com.daicg.hearingaid.classic",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
-  "notes": "经典回溯版：把核心收音引擎和场景参数恢复到最初公开版的音频链路，仅保留独立包名和现代 Android/MIUI 启动修复，用于验证最初无电流声的声音。"
+  "notes": "经典回溯版加自声抑制：保持最初公开版收音链路，新增默认开启的“减少自己声音”功能，自己说话很近很响时自动压低耳机回放，减轻延迟回声。"
 }
