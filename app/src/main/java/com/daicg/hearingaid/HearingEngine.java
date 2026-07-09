@@ -62,7 +62,7 @@ public final class HearingEngine {
     }
 
     public void setGain(float gain) {
-        this.gain = Math.max(0.2f, Math.min(gain, 56.0f));
+        this.gain = Math.max(0.2f, Math.min(gain, 64.0f));
     }
 
     public void setOutputLimit(float outputLimit) {
@@ -292,8 +292,11 @@ public final class HearingEngine {
                 input = voiceProcessor.highPass(input);
                 input = voiceProcessor.voiceShape(input);
                 float absInput = Math.abs(input);
-                if (farPickup && absInput > 45.0f && absInput < 2200.0f) {
-                    input *= 1.45f;
+                if (farPickup && absInput > 45.0f && absInput < 3200.0f) {
+                    input *= 1.58f;
+                }
+                if (absInput > 180.0f && absInput < 7200.0f) {
+                    input *= farPickup ? 1.32f : 1.24f;
                 }
                 if (absInput < (farPickup ? 45.0f : 90.0f)) {
                     input *= 0.35f;
