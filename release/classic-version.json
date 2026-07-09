@@ -1,7 +1,7 @@
 {
-  "versionCode": 12,
-  "versionName": "classic-2.1",
+  "versionCode": 13,
+  "versionName": "classic-2.2",
   "packageName": "com.daicg.hearingaid.classic",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
-  "notes": "经典版：默认优先指定耳机麦克风作为收音输入；系统可见有线/USB/蓝牙耳机输入时优先使用，找不到耳机输入时自动退回可用麦克风。"
+  "notes": "经典版：在保持当前人声清晰度的基础上，加入温和环境底噪门限，不继续锐化人声；提高默认播放响度和媒体音量映射，蓝牙/有线模式默认更大声。"
 }
