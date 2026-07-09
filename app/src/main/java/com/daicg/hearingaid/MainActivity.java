@@ -364,7 +364,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(gainText, matchWidthWrapHeight());
 
         gainSeek = new SeekBar(this);
-        gainSeek.setMax(238);
+        gainSeek.setMax(318);
         gainSeek.setProgress(18);
         gainSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -413,8 +413,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         maxButton.setTextSize(16);
         maxButton.setAllCaps(false);
         maxButton.setOnClickListener(v -> {
-            engine.setOutputLimit(0.90f);
-            setGainProgressForValue(24.0f);
+            engine.setOutputLimit(0.96f);
+            setGainProgressForValue(32.0f);
             toast("\u5df2\u5230\u6700\u5927\u6863\uff0c\u8bf7\u6ce8\u610f\u9632\u6b62\u5578\u53eb\u548c\u8033\u75db");
         });
         root.addView(maxButton, matchWidthFixedHeight(48));
@@ -940,7 +940,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
         int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         float ratio = gainSeek.getProgress() / (float) Math.max(1, gainSeek.getMax());
-        int hearingMinimum = Math.max(1, Math.round(maxVolume * 0.72f));
+        int hearingMinimum = Math.max(1, Math.round(maxVolume * 0.82f));
         int targetVolume = Math.max(hearingMinimum, Math.round(ratio * maxVolume));
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume, 0);
         lastSeenSystemVolume = targetVolume;
@@ -1044,13 +1044,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
         activeAppliedMode = AppSettings.MODE_BLUETOOTH_DAILY;
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
-        engine.setOutputLimit(0.82f);
+        engine.setOutputLimit(0.90f);
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(5.0f);
+        setGainProgressForValue(8.0f);
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         if (announce) {
             speak("\u84dd\u7259\u6a21\u5f0f");
@@ -1069,13 +1069,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
         activeAppliedMode = AppSettings.MODE_WIRED_INDOOR;
         saveMode(AppSettings.MODE_WIRED_INDOOR);
-        engine.setOutputLimit(0.84f);
+        engine.setOutputLimit(0.92f);
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(6.0f);
+        setGainProgressForValue(10.0f);
         updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
         if (announce) {
             speak("\u6709\u7ebf\u6a21\u5f0f");
@@ -1101,13 +1101,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private void applySevereMode() {
         activeAppliedMode = AppSettings.MODE_SEVERE;
         saveMode(AppSettings.MODE_SEVERE);
-        engine.setOutputLimit(0.90f);
+        engine.setOutputLimit(0.96f);
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(true);
-        setGainProgressForValue(8.0f);
+        setGainProgressForValue(12.0f);
         updateModeFeedback(AppSettings.MODE_SEVERE);
         speak("\u91cd\u5ea6\u6a21\u5f0f");
     }
