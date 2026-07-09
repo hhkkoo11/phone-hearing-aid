@@ -1,7 +1,7 @@
 {
-  "versionCode": 7,
-  "versionName": "classic-1.6",
+  "versionCode": 8,
+  "versionName": "classic-1.7",
   "packageName": "com.daicg.hearingaid.classic",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
-  "notes": "经典增强版：针对骨传导/蓝牙测试中的强电流声，把高频边缘增强大幅收回，保留接近初代的干净收音和轻微人声托底。"
+  "notes": "经典纯净版：针对持续强电流声，关闭默认系统降噪和人声锐化，不再额外放大高频边缘，只保留基础实时放大和轻微底噪门限。"
 }
