@@ -1,7 +1,7 @@
 {
-  "versionCode": 62,
-  "versionName": "5.21",
+  "versionCode": 63,
+  "versionName": "5.22",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "120倍极限响度测试版：继续使用耳机麦克风收音，最大增益提高到 120 倍；放松环境门限，降低小声人声被压掉的情况，并增强手机/耳机麦克风收到的人声响度。此版本更容易出现失真、滋滋声或啸叫，请谨慎升高增益。云更新不强制。"
+  "notes": "极限响度防刺耳版：保留 120 倍最大增益和耳机麦克风收音，但减少人声锐化，加入尖刺软化、极限档输出平滑和更柔和的压缩，目标是在声音变大的同时降低刺耳杂声。云更新不强制。"
 }

@@ -326,6 +326,7 @@ public final class HearingEngine {
             if (enhanceVoice) {
                 input = voiceProcessor.highPass(input);
                 input = voiceProcessor.voiceShape(input);
+                input = voiceProcessor.softenSharpEdge(input);
                 float absInput = Math.abs(input);
                 input *= voiceProcessor.environmentGate(absInput, farPickup || longRangePickup);
                 input = voiceProcessor.reduceEchoTail(input, farPickup || longRangePickup);
@@ -353,6 +354,7 @@ public final class HearingEngine {
             }
             if (enhanceVoice) {
                 sample = compressAndLimit(sample, limit);
+                sample = voiceProcessor.smoothExtremeOutput(sample, gain);
             }
             buffer[i] = (short) sample;
             int absSample = Math.abs(sample);
@@ -383,7 +385,7 @@ public final class HearingEngine {
     }
 
     private static int compressAndLimit(int sample, int limit) {
-        return compressAndLimit(sample, limit, 0.52f, 0.45f);
+        return compressAndLimit(sample, limit, 0.42f, 0.24f);
     }
 
     private static int compressAndLimit(int sample, int limit, float kneeRatio, float overKneeRatio) {
@@ -608,6 +610,8 @@ public final class HearingEngine {
         private float boneOutdoorTail;
         private float boneOutdoorPrevious;
         private float outputSmoother;
+        private float edgeSmoother;
+        private float extremeOutputSmoother;
         private float environmentFloor = 120.0f;
         private float echoTail;
         private float selfTalkDuck = 1.0f;
@@ -637,8 +641,29 @@ public final class HearingEngine {
         float voiceShape(float input) {
             float edge = input - previousPresenceInput;
             previousPresenceInput = input;
-            smoothedPresence = smoothedPresence * 0.74f + edge * 0.26f;
-            return input * 1.02f + smoothedPresence * 0.18f;
+            smoothedPresence = smoothedPresence * 0.84f + edge * 0.16f;
+            return input * 1.00f + smoothedPresence * 0.06f;
+        }
+
+        float softenSharpEdge(float input) {
+            edgeSmoother = edgeSmoother * 0.58f + input * 0.42f;
+            return edgeSmoother;
+        }
+
+        int smoothExtremeOutput(int sample, float gain) {
+            if (gain < 48.0f) {
+                return sample;
+            }
+            float keepPrevious = gain >= 90.0f ? 0.42f : 0.28f;
+            extremeOutputSmoother = extremeOutputSmoother * keepPrevious + sample * (1.0f - keepPrevious);
+            int smoothed = Math.round(extremeOutputSmoother);
+            if (smoothed > Short.MAX_VALUE) {
+                return Short.MAX_VALUE;
+            }
+            if (smoothed < Short.MIN_VALUE) {
+                return Short.MIN_VALUE;
+            }
+            return smoothed;
         }
 
         float environmentGate(float absInput, boolean outdoorPickup) {
