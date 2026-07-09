@@ -47,7 +47,7 @@ public final class HearingEngine {
     private boolean voiceEnhancementEnabled = true;
     private boolean farPickupEnabled = true;
     private boolean feedbackProtectionEnabled = true;
-    private boolean ownVoiceSuppressionEnabled = true;
+    private boolean ownVoiceSuppressionEnabled;
     private boolean phoneMicInputEnabled = true;
 
     public HearingEngine(Context context, Listener listener) {

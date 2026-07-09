@@ -89,7 +89,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private boolean downloadReceiverRegistered;
     private boolean suppressSwitchCallback;
     private boolean voiceEnhancementEnabled = true;
-    private boolean ownVoiceSuppressionEnabled = true;
+    private boolean ownVoiceSuppressionEnabled;
     private boolean farPickupEnabled = true;
     private boolean noiseSuppressionEnabled = true;
     private boolean automaticGainEnabled;
@@ -171,6 +171,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         super.onCreate(savedInstanceState);
         engine = new HearingEngine(this, this);
         engine.setPhoneMicInputEnabled(AppSettings.phoneMicInputEnabled(this));
+        engine.setOwnVoiceSuppressionEnabled(ownVoiceSuppressionEnabled);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         textToSpeech = new TextToSpeech(this, status -> {
@@ -329,7 +330,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7ecf\u5178\u7248 3.0\uff1a\u4fee\u590d\u589e\u76ca\u8c03\u8282");
+        versionText.setText("\u7ecf\u5178\u7248 3.1\uff1a\u4e0d\u9ed8\u8ba4\u538b\u4f4e\u4eba\u58f0");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -558,7 +559,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 content,
                 "\u51cf\u5c11\u81ea\u5df1\u58f0\u97f3",
                 ownVoiceSuppressionEnabled,
-                "\u81ea\u5df1\u8bf4\u8bdd\u5f88\u54cd\u65f6\u81ea\u52a8\u538b\u4f4e\u8033\u673a\u56de\u653e\uff0c\u5c3d\u91cf\u51cf\u5c11\u56de\u58f0\u548c\u6162\u534a\u62cd\u3002",
+                "\u9ed8\u8ba4\u5173\u95ed\uff1a\u5f00\u542f\u540e\u4f1a\u538b\u4f4e\u7279\u522b\u8fd1\u3001\u7279\u522b\u5927\u7684\u58f0\u97f3\uff0c\u4f46\u4e5f\u53ef\u80fd\u8ba9\u4eba\u58f0\u53d8\u5c0f\u3002",
                 this::setOwnVoiceSuppressionEnabled);
 
         farPickupSwitch = addSettingSwitch(
