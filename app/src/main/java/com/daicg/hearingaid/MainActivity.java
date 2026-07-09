@@ -396,7 +396,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 4.5\uff1a\u4fee\u590d\u6536\u97f3\u53cd\u5e94\u8df3\u52a8");
+        versionText.setText("\u7248\u672c 4.6\uff1a\u65b0\u589e\u6237\u5916\u6d4b\u8bd5\u6570\u636e\u91c7\u96c6");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -817,6 +817,32 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                     }
                 });
 
+        addSettingSwitch(
+                content,
+                "\u6237\u5916\u6d4b\u8bd5\u6570\u636e\u91c7\u96c6",
+                AppSettings.outdoorDataCollectionEnabled(this),
+                "\u51fa\u95e8\u6d4b\u8bd5\u65f6\u6253\u5f00\uff1a\u53ea\u8bb0\u5f55\u6536\u97f3\u5f3a\u5ea6\u3001\u589e\u76ca\u3001\u6a21\u5f0f\u3001\u8033\u673a\u7c7b\u578b\u548c\u5f00\u5173\u72b6\u6001\uff0c\u4e0d\u5f55\u97f3\u3001\u4e0d\u4fdd\u5b58\u8bf4\u8bdd\u5185\u5bb9\u3002",
+                isChecked -> {
+                    AppSettings.prefs(this).edit()
+                            .putBoolean(AppSettings.KEY_OUTDOOR_DATA_COLLECTION, isChecked)
+                            .apply();
+                    TestDataLogger.appendEvent(this, isChecked ? "collection_start" : "collection_stop");
+                    toast(isChecked ? "\u5df2\u5f00\u59cb\u91c7\u96c6\u6237\u5916\u6d4b\u8bd5\u6570\u636e" : "\u5df2\u505c\u6b62\u91c7\u96c6\u6237\u5916\u6d4b\u8bd5\u6570\u636e");
+                });
+
+        Button markTestButton = makeSettingsButton("\u8bb0\u5f55\u4e00\u4e2a\u6d4b\u8bd5\u6807\u8bb0");
+        markTestButton.setOnClickListener(v -> {
+            TestDataLogger.appendEvent(this, "user_mark");
+            toast("\u5df2\u8bb0\u5f55\u6d4b\u8bd5\u6807\u8bb0");
+        });
+        content.addView(markTestButton, matchWidthFixedHeight(48));
+        content.addView(makeHelpText("\u6237\u5916\u6d4b\u8bd5\u65f6\uff0c\u5982\u679c\u9047\u5230\u201c\u542c\u4e0d\u6e05\u201d\u3001\u201c\u6742\u97f3\u5927\u201d\u6216\u201c\u6548\u679c\u5f88\u597d\u201d\uff0c\u5c31\u70b9\u4e00\u4e0b\u8fd9\u4e2a\u6309\u94ae\uff0c\u56de\u6765\u540e\u65b9\u4fbf\u5bf9\u7740\u65f6\u95f4\u70b9\u4f18\u5316\u3002"), matchWidthWrapHeight());
+
+        Button dataPathButton = makeSettingsButton("\u663e\u793a\u6570\u636e\u4fdd\u5b58\u4f4d\u7f6e");
+        dataPathButton.setOnClickListener(v -> showTestDataLocation());
+        content.addView(dataPathButton, matchWidthFixedHeight(48));
+        content.addView(makeHelpText("\u6d4b\u8bd5\u6570\u636e\u4fdd\u5b58\u5728\u672c\u673a App \u6587\u4ef6\u5939\u91cc\uff0c\u540e\u9762\u53ef\u4ee5\u5bfc\u51fa\u7ed9\u6211\u5206\u6790\u3002"), matchWidthWrapHeight());
+
         voiceGuideSwitch = addSettingSwitch(
                 content,
                 "\u6309\u94ae\u8bed\u97f3\u64ad\u62a5",
@@ -882,6 +908,16 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         button.setTextSize(16);
         button.setAllCaps(false);
         return button;
+    }
+
+    private void showTestDataLocation() {
+        new AlertDialog.Builder(this)
+                .setTitle("\u6237\u5916\u6d4b\u8bd5\u6570\u636e")
+                .setMessage("\u6570\u636e\u6587\u4ef6\uff1a\n"
+                        + TestDataLogger.dataFile(this).getAbsolutePath()
+                        + "\n\n\u8fd9\u4e2a\u6587\u4ef6\u53ea\u8bb0\u5f55\u8c03\u8bd5\u6307\u6807\uff0c\u4e0d\u5f55\u97f3\uff0c\u4e0d\u4fdd\u5b58\u8bf4\u8bdd\u5185\u5bb9\u3002")
+                .setPositiveButton("\u77e5\u9053\u4e86", null)
+                .show();
     }
 
     private void showOneTimeSetupHintIfNeeded() {

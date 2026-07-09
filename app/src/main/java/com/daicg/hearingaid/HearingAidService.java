@@ -110,6 +110,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     @Override
     public void onLevel(float level) {
+        TestDataLogger.appendLevel(this, level);
         long now = android.os.SystemClock.uptimeMillis();
         if (now - lastLevelBroadcastAt < 80L) {
             return;

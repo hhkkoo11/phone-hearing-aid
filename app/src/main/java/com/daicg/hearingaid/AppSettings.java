@@ -12,6 +12,7 @@ final class AppSettings {
     static final String KEY_CALL_ASSIST = "call_assist";
     static final String KEY_CALL_ACTIVE = "call_active";
     static final String KEY_CALL_ASSIST_WAS_LISTENING = "call_assist_was_listening";
+    static final String KEY_OUTDOOR_DATA_COLLECTION = "outdoor_data_collection";
     static final String KEY_SCENE_MODE = "scene_mode";
     static final String KEY_WIRED_AUTO_START = "wired_auto_start";
     static final String KEY_AUTO_LISTEN_PAUSED = "auto_listen_paused";
@@ -70,6 +71,10 @@ final class AppSettings {
 
     static boolean callActive(Context context) {
         return prefs(context).getBoolean(KEY_CALL_ACTIVE, false);
+    }
+
+    static boolean outdoorDataCollectionEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_OUTDOOR_DATA_COLLECTION, false);
     }
 
     static boolean wiredAutoStartEnabled(Context context) {
