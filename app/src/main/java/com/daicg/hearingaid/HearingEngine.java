@@ -32,8 +32,8 @@ public final class HearingEngine {
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     private static final int WIRED_SAMPLE_RATE = 48000;
     private static final int BLUETOOTH_SAMPLE_RATE = 44100;
-    private static final int WIRED_FRAME_BUFFER = 96;
-    private static final int BLUETOOTH_FRAME_BUFFER = 192;
+    private static final int WIRED_FRAME_BUFFER = 192;
+    private static final int BLUETOOTH_FRAME_BUFFER = 256;
     private static final float SELF_VOICE_THRESHOLD = 1300.0f;
     private static final float FAR_SELF_VOICE_THRESHOLD = 1750.0f;
     private static final float SELF_VOICE_COMPRESS_RATIO = 0.28f;
@@ -320,162 +320,24 @@ public final class HearingEngine {
             VoiceProcessor voiceProcessor, FeedbackGuard feedbackGuard) {
         long sum = 0L;
         int peak = 0;
-        boolean highGainEchoControl = gain >= 8.0f;
-        float effectiveOutputLimit = highGainEchoControl
-                ? Math.min(outputLimit, gain >= 16.0f ? 0.84f : 0.96f)
-                : outputLimit;
-        int limit = Math.round(Short.MAX_VALUE * effectiveOutputLimit);
-        VoiceSignature frameSignature = VoiceSignature.fromSamples(buffer, length);
-        boolean profileMatched = voiceProcessor.selfVoiceProfileEnabled
-                && frameSignature.matches(
-                voiceProcessor.selfVoiceProfileZcr,
-                voiceProcessor.selfVoiceProfileDiffRatio,
-                voiceProcessor.selfVoiceProfilePeakRatio);
-        boolean boneQuietNoise = voiceProcessor.boneConductionNoiseControlEnabled
-                && frameSignature.averageAbs < 520.0f;
-        boolean proximityBuzzFrame = voiceProcessor.isLikelyProximityBuzz(frameSignature, gain);
-        boolean diffuseNoiseFrame = voiceProcessor.isLikelyDiffuseNoise(frameSignature, longRangePickup);
-        boolean speechLikeFrame = voiceProcessor.isLikelySpeechFrame(frameSignature);
-        boolean outdoorMusicNoiseFrame = voiceProcessor.isLikelyOutdoorMusicNoise(frameSignature, gain);
-        boolean electricNoiseFrame = voiceProcessor.isLikelyElectricNoise(frameSignature, gain);
-        boolean harshHissFrame = voiceProcessor.isLikelyHarshHiss(frameSignature, gain);
-        boolean nearSelfTalkFrame = reduceSelfVoice
-                && (profileMatched || voiceProcessor.isLikelyNearSelfTalk(frameSignature, gain));
-        float selfTalkDuck = voiceProcessor.updateSelfTalkDuck(nearSelfTalkFrame, gain);
+        int limit = Math.round(Short.MAX_VALUE * outputLimit);
         for (int i = 0; i < length; i++) {
             float input = buffer[i];
             if (enhanceVoice) {
                 input = voiceProcessor.highPass(input);
                 input = voiceProcessor.voiceShape(input);
-                if (voiceProcessor.boneConductionNoiseControlEnabled) {
-                    input = voiceProcessor.boneOutdoorVoiceShape(input, speechLikeFrame);
-                }
-                if (highGainEchoControl) {
-                    input = voiceProcessor.highGainDeEcho(input, gain);
-                }
                 float absInput = Math.abs(input);
-                if (voiceProcessor.boneConductionNoiseControlEnabled) {
-                    if (proximityBuzzFrame) {
-                        input *= 0.18f;
-                        absInput = Math.abs(input);
-                    }
-                    if (absInput < 260.0f) {
-                        input *= 0.12f;
-                    } else if (absInput < 620.0f) {
-                        input *= boneQuietNoise ? 0.38f : 0.62f;
-                    }
-                    if (boneQuietNoise) {
-                        input *= 0.72f;
-                    }
-                    absInput = Math.abs(input);
-                }
-                if (voiceProcessor.boneConductionNoiseControlEnabled && outdoorMusicNoiseFrame) {
-                    input *= speechLikeFrame ? 0.62f : 0.16f;
-                    absInput = Math.abs(input);
-                }
-                if (voiceProcessor.boneConductionNoiseControlEnabled && (electricNoiseFrame || harshHissFrame)) {
-                    input *= speechLikeFrame ? 0.58f : 0.06f;
-                    absInput = Math.abs(input);
-                }
-                if (diffuseNoiseFrame && absInput < (longRangePickup ? 540.0f : 480.0f)) {
-                    if (voiceProcessor.boneConductionNoiseControlEnabled) {
-                        input *= longRangePickup ? 0.34f : 0.28f;
-                    } else {
-                        input *= longRangePickup ? 0.58f : 0.44f;
-                    }
-                    absInput = Math.abs(input);
-                }
                 if (farPickup && absInput > 70.0f && absInput < 2200.0f) {
-                    if (highGainEchoControl) {
-                        input *= voiceProcessor.boneConductionNoiseControlEnabled
-                                ? (speechLikeFrame ? 1.16f : 0.70f)
-                                : 1.14f;
-                    } else {
-                        input *= voiceProcessor.boneConductionNoiseControlEnabled ? (speechLikeFrame ? 1.38f : 0.62f) : 1.45f;
-                    }
+                    input *= 1.45f;
                     absInput = Math.abs(input);
                 }
-                if (longRangePickup && !proximityBuzzFrame && absInput > 42.0f && absInput < 1450.0f) {
-                    float longRangeBoost;
-                    if (absInput < 180.0f) {
-                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled
-                                ? (speechLikeFrame ? 1.72f : 0.45f)
-                                : 1.82f;
-                    } else if (absInput < 680.0f) {
-                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled
-                                ? (speechLikeFrame ? 2.18f : 0.52f)
-                                : 1.96f;
-                    } else {
-                        longRangeBoost = voiceProcessor.boneConductionNoiseControlEnabled
-                                ? (speechLikeFrame ? 1.62f : 0.48f)
-                                : 1.35f;
-                    }
-                    if (highGainEchoControl) {
-                        longRangeBoost *= voiceProcessor.boneConductionNoiseControlEnabled && speechLikeFrame ? 0.92f : 0.78f;
-                    }
-                    input *= longRangeBoost;
+                if (longRangePickup && absInput > 45.0f && absInput < 1800.0f) {
+                    input *= 1.22f;
                     absInput = Math.abs(input);
                 }
-                if (!proximityBuzzFrame && absInput > 180.0f && absInput < 1800.0f) {
-                    float voiceForward = highGainEchoControl ? 1.04f : 1.13f;
-                    if (longRangePickup) {
-                        voiceForward += 0.04f;
-                    }
-                    if (voiceProcessor.boneConductionNoiseControlEnabled) {
-                        voiceForward += speechLikeFrame ? 0.28f : -0.42f;
-                    }
-                    input *= voiceForward;
-                    absInput = Math.abs(input);
+                if (absInput < (farPickup ? 45.0f : 90.0f)) {
+                    input *= 0.35f;
                 }
-                float selfVoiceThreshold = profileMatched
-                        ? (farPickup ? 980.0f : 760.0f)
-                        : (farPickup ? FAR_SELF_VOICE_THRESHOLD : SELF_VOICE_THRESHOLD);
-                if (highGainEchoControl) {
-                    selfVoiceThreshold *= voiceProcessor.boneConductionNoiseControlEnabled ? 0.62f : 0.72f;
-                }
-                if (reduceSelfVoice && absInput > selfVoiceThreshold) {
-                    float ratio = profileMatched ? 0.14f : SELF_VOICE_COMPRESS_RATIO;
-                    if (highGainEchoControl) {
-                        ratio *= voiceProcessor.boneConductionNoiseControlEnabled ? 0.78f : 0.70f;
-                    }
-                    if (voiceProcessor.boneConductionNoiseControlEnabled && speechLikeFrame && !profileMatched) {
-                        ratio = Math.max(ratio, 0.62f);
-                    }
-                    input = softenNearLoudVoice(input, absInput, selfVoiceThreshold, ratio);
-                    absInput = Math.abs(input);
-                }
-                if (highGainEchoControl && !longRangePickup && absInput < frameSignature.averageAbs * 0.82f) {
-                    input *= voiceProcessor.boneConductionNoiseControlEnabled ? 0.50f : 0.62f;
-                    absInput = Math.abs(input);
-                }
-                float quietGate = longRangePickup && !proximityBuzzFrame ? 38.0f : (farPickup ? 70.0f : 115.0f);
-                if (voiceProcessor.boneConductionNoiseControlEnabled) {
-                    quietGate = speechLikeFrame ? 30.0f : 95.0f;
-                }
-                if (absInput < quietGate) {
-                    input *= voiceProcessor.boneConductionNoiseControlEnabled
-                            ? (speechLikeFrame ? 0.55f : 0.06f)
-                            : (longRangePickup ? 0.14f : 0.22f);
-                } else if (longRangePickup && absInput < quietGate * 2.4f) {
-                    input *= voiceProcessor.boneConductionNoiseControlEnabled
-                            ? (speechLikeFrame ? 1.06f : 0.34f)
-                            : 0.76f;
-                } else if (!longRangePickup && absInput < quietGate * 2.2f) {
-                    input *= 0.62f;
-                }
-                if (voiceProcessor.boneConductionNoiseControlEnabled && speechLikeFrame
-                        && !electricNoiseFrame && !harshHissFrame) {
-                    input *= gain >= 16.0f ? 1.10f : 1.20f;
-                }
-                if (gain < 15.5f && speechLikeFrame
-                        && !electricNoiseFrame && !harshHissFrame && !proximityBuzzFrame) {
-                    float lowGainVoiceLift = voiceProcessor.boneConductionNoiseControlEnabled ? 1.62f : 1.42f;
-                    if (longRangePickup) {
-                        lowGainVoiceLift += 0.12f;
-                    }
-                    input *= lowGainVoiceLift;
-                }
-                input *= selfTalkDuck;
             }
             int sample = Math.round(input * gain);
             if (sample > Short.MAX_VALUE) {
@@ -484,13 +346,7 @@ public final class HearingEngine {
                 sample = Short.MIN_VALUE;
             }
             if (enhanceVoice) {
-                sample = highGainEchoControl
-                        ? compressAndLimit(sample, limit,
-                        gain < 15.5f ? 0.46f : (voiceProcessor.boneConductionNoiseControlEnabled ? 0.60f : 0.52f),
-                        gain < 15.5f ? 0.34f : (voiceProcessor.boneConductionNoiseControlEnabled ? 0.20f : 0.16f))
-                        : compressAndLimit(sample, limit);
-                sample = voiceProcessor.smoothOutput(sample, electricNoiseFrame || harshHissFrame,
-                        speechLikeFrame, gain);
+                sample = compressAndLimit(sample, limit);
             }
             buffer[i] = (short) sample;
             int absSample = Math.abs(sample);

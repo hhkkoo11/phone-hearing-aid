@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.IBinder;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.widget.Toast;
 
@@ -17,6 +19,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     private HearingEngine engine;
     private PowerManager.WakeLock wakeLock;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private long lastLevelBroadcastAt;
     private boolean screenReceiverRegistered;
 
@@ -147,21 +150,25 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     @Override
     public void onError(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-        stopSelf();
+        mainHandler.post(() -> {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+            stopSelf();
+        });
     }
 
     @Override
     public void onGainReduced(float gain) {
-        Toast.makeText(this, "\u68c0\u6d4b\u5230\u5578\u53eb\u98ce\u9669\uff0c\u5df2\u81ea\u52a8\u964d\u4f4e\u589e\u76ca",
-                Toast.LENGTH_SHORT).show();
+        mainHandler.post(() -> Toast.makeText(this,
+                "\u68c0\u6d4b\u5230\u5578\u53eb\u98ce\u9669\uff0c\u5df2\u81ea\u52a8\u964d\u4f4e\u589e\u76ca",
+                Toast.LENGTH_SHORT).show());
     }
 
     @Override
     public void onLoudListening(float gain) {
         if (AppSettings.loudWarningEnabled(this)) {
-            Toast.makeText(this, "\u5f53\u524d\u6536\u97f3\u8f83\u5927\uff0c\u5982\u679c\u523a\u8033\u8bf7\u964d\u4f4e\u97f3\u91cf",
-                    Toast.LENGTH_SHORT).show();
+            mainHandler.post(() -> Toast.makeText(this,
+                    "\u5f53\u524d\u6536\u97f3\u8f83\u5927\uff0c\u5982\u679c\u523a\u8033\u8bf7\u964d\u4f4e\u97f3\u91cf",
+                    Toast.LENGTH_SHORT).show());
         }
     }
 

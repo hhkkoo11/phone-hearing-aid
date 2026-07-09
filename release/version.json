@@ -1,7 +1,7 @@
 {
-  "versionCode": 52,
-  "versionName": "5.11",
+  "versionCode": 54,
+  "versionName": "5.13",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "低噪大声版：默认增益提高到 12 倍；8 倍以上直接把耳机播放音量推到满格；15 倍以下的人声段进一步做响度提升和压缩，尽量用较低增益获得更大听感，减少高增益带来的电流声。云更新不强制。"
+  "notes": "原始音色回归版：保留自动连接、息屏运行、云更新和闪退修复，但把核心收音处理回到早期那种直接放大链路：高通、轻微人声塑形、远距离小声增强和简单压缩限幅。并修复后台音频线程提示错误时可能闪退的问题。云更新不强制。"
 }
