@@ -1,7 +1,7 @@
 {
-  "versionCode": 21,
-  "versionName": "classic-3.0",
+  "versionCode": 22,
+  "versionName": "classic-3.1",
   "packageName": "com.daicg.hearingaid.classic",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
-  "notes": "经典版：修复增益调节被手机音量反向同步拉回的问题。App 内 + / - 和滑块现在优先控制增益，系统音量只负责输出音量，不再覆盖增益。云更新不强制。"
+  "notes": "经典版：默认关闭“减少自己声音”，不再默认压低近距离大声，从而恢复人声响度；保留手机麦克风收音、底噪门和滋滋声过滤。云更新不强制。"
 }
