@@ -396,7 +396,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 4.8\uff1a\u660e\u786e\u652f\u6301\u79bb\u7ebf\u4f7f\u7528");
+        versionText.setText("\u7248\u672c 4.9\uff1a\u65b0\u589e\u606f\u5c4f\u6536\u97f3\u5b9e\u6d4b\u8bb0\u5f55");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -845,7 +845,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             toast("\u5df2\u8bb0\u5f55\u6d4b\u8bd5\u6807\u8bb0");
         });
         content.addView(markTestButton, matchWidthFixedHeight(48));
-        content.addView(makeHelpText("\u6237\u5916\u6d4b\u8bd5\u65f6\uff0c\u5982\u679c\u9047\u5230\u201c\u542c\u4e0d\u6e05\u201d\u3001\u201c\u6742\u97f3\u5927\u201d\u6216\u201c\u6548\u679c\u5f88\u597d\u201d\uff0c\u5c31\u70b9\u4e00\u4e0b\u8fd9\u4e2a\u6309\u94ae\uff0c\u56de\u6765\u540e\u65b9\u4fbf\u5bf9\u7740\u65f6\u95f4\u70b9\u4f18\u5316\u3002"), matchWidthWrapHeight());
+        content.addView(makeHelpText("\u6237\u5916\u6d4b\u8bd5\u65f6\uff0c\u5982\u679c\u9047\u5230\u201c\u542c\u4e0d\u6e05\u201d\u3001\u201c\u6742\u97f3\u5927\u201d\u6216\u201c\u6548\u679c\u5f88\u597d\u201d\uff0c\u5c31\u70b9\u4e00\u4e0b\u8fd9\u4e2a\u6309\u94ae\u3002\u606f\u5c4f\u65f6 App \u4e5f\u4f1a\u8bb0\u5f55 screen_off \u548c\u6536\u97f3\u6307\u6807\uff0c\u56de\u6765\u540e\u53ef\u4ee5\u786e\u8ba4\u606f\u5c4f\u540e\u662f\u5426\u8fd8\u5728\u6536\u97f3\u3002"), matchWidthWrapHeight());
 
         Button audioSampleButton = makeSettingsButton("\u5f55\u5236 10 \u79d2\u8c03\u8bd5\u6837\u672c");
         audioSampleButton.setOnClickListener(v -> {

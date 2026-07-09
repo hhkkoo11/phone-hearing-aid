@@ -1,8 +1,10 @@
 package com.daicg.hearingaid;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.widget.Toast;
@@ -16,6 +18,19 @@ public final class HearingAidService extends Service implements HearingEngine.Li
     private HearingEngine engine;
     private PowerManager.WakeLock wakeLock;
     private long lastLevelBroadcastAt;
+    private boolean screenReceiverRegistered;
+
+    private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                TestDataLogger.appendEvent(HearingAidService.this, "screen_off");
+            } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
+                TestDataLogger.appendEvent(HearingAidService.this, "screen_on");
+            }
+        }
+    };
 
     public static void start(Context context) {
         try {
@@ -59,6 +74,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             stopSelf();
             return;
         }
+        registerScreenReceiver();
         ensureEngine();
     }
 
@@ -73,6 +89,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             stopSelf();
             return START_NOT_STICKY;
         }
+        registerScreenReceiver();
         ensureEngine();
         if (ACTION_REFRESH.equals(intent == null ? null : intent.getAction())) {
             applySavedMode();
@@ -91,6 +108,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         if (engine != null) {
             engine.stop();
         }
+        unregisterScreenReceiver();
         releaseWakeLock();
         super.onDestroy();
     }
@@ -253,6 +271,25 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         if (!engine.isRunning()) {
             engine.start();
         }
+    }
+
+    private void registerScreenReceiver() {
+        if (screenReceiverRegistered) {
+            return;
+        }
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        registerReceiver(screenReceiver, filter);
+        screenReceiverRegistered = true;
+    }
+
+    private void unregisterScreenReceiver() {
+        if (!screenReceiverRegistered) {
+            return;
+        }
+        unregisterReceiver(screenReceiver);
+        screenReceiverRegistered = false;
     }
 
     private void acquireWakeLock() {

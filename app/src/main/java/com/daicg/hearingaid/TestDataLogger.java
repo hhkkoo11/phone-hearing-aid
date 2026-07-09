@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Environment;
+import android.os.PowerManager;
 import android.os.SystemClock;
 
 import java.io.File;
@@ -76,12 +77,14 @@ final class TestDataLogger {
         boolean needsHeader = !file.exists() || file.length() == 0L;
         try (FileWriter writer = new FileWriter(file, true)) {
             if (needsHeader) {
-                writer.write("time,event,level_percent,gain,scene_mode,input_source,output_route,"
+                writer.write("time,event,screen_state,level_percent,gain,scene_mode,input_source,output_route,"
                         + "voice,far_pickup,long_range,noise,agc,self_voice,echo,version\n");
             }
             writer.write(csv(nowText()));
             writer.write(',');
             writer.write(csv(event));
+            writer.write(',');
+            writer.write(csv(screenState(context)));
             writer.write(',');
             writer.write(level >= 0.0f ? String.valueOf(Math.round(level * 100.0f)) : "");
             writer.write(',');
@@ -119,13 +122,15 @@ final class TestDataLogger {
         FrameStats stats = FrameStats.from(buffer, length);
         try (FileWriter writer = new FileWriter(file, true)) {
             if (needsHeader) {
-                writer.write("time,event,level_percent,gain,scene_mode,input_source,output_route,"
+                writer.write("time,event,screen_state,level_percent,gain,scene_mode,input_source,output_route,"
                         + "voice,far_pickup,long_range,noise,agc,self_voice,echo,version,"
                         + "sample_rate,rms,peak,zero_cross_percent,clip_percent\n");
             }
             writer.write(csv(nowText()));
             writer.write(',');
             writer.write(csv("frame_stats"));
+            writer.write(',');
+            writer.write(csv(screenState(context)));
             writer.write(',');
             writer.write(String.valueOf(stats.levelPercent));
             writer.write(',');
@@ -238,6 +243,14 @@ final class TestDataLogger {
 
     private static String nowText() {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
+    }
+
+    private static String screenState(Context context) {
+        PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        if (powerManager == null) {
+            return "unknown";
+        }
+        return powerManager.isInteractive() ? "screen_on" : "screen_off";
     }
 
     private static String versionName(Context context) {
