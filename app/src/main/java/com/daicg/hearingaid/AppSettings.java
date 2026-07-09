@@ -34,6 +34,7 @@ final class AppSettings {
     static final String KEY_ECHO_CANCELLATION = "echo_cancellation";
     static final String KEY_SELF_VOICE_REDUCTION = "self_voice_reduction";
     static final String KEY_NOISE_SUPPRESSION = "noise_suppression";
+    static final String KEY_AI_NOISE_SUPPRESSION = "ai_noise_suppression";
     static final String KEY_AUTOMATIC_GAIN = "automatic_gain";
     static final float DEFAULT_GAIN = 14.0f;
 
@@ -166,6 +167,10 @@ final class AppSettings {
 
     static boolean noiseSuppressionEnabled(Context context) {
         return prefs(context).getBoolean(KEY_NOISE_SUPPRESSION, true);
+    }
+
+    static boolean aiNoiseSuppressionEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_AI_NOISE_SUPPRESSION, true);
     }
 
     static boolean automaticGainEnabled(Context context) {

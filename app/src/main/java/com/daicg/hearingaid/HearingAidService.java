@@ -187,8 +187,10 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         boolean echoCancellation = AppSettings.echoCancellationEnabled(this);
         boolean selfVoiceReduction = false;
         boolean noiseSuppression = AppSettings.noiseSuppressionEnabled(this);
+        boolean aiNoiseSuppression = AppSettings.aiNoiseSuppressionEnabled(this);
         boolean automaticGain = AppSettings.automaticGainEnabled(this);
         engine.setInputSourceMode(AppSettings.inputSourceMode(this));
+        engine.setAiNoiseSuppressionEnabled(aiNoiseSuppression);
         if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
             engine.setGain(savedGain);
             engine.setOutputLimit(0.86f);

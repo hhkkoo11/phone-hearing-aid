@@ -1,7 +1,7 @@
-{
-  "versionCode": 63,
-  "versionName": "5.22",
+﻿{
+  "versionCode": 64,
+  "versionName": "5.23",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "极限响度防刺耳版：保留 120 倍最大增益和耳机麦克风收音，但减少人声锐化，加入尖刺软化、极限档输出平滑和更柔和的压缩，目标是在声音变大的同时降低刺耳杂声。云更新不强制。"
+  "notes": "加入训练好的 RNNoise AI 人声降噪模型：优先压低风声、电流感和环境杂音，再进入原有放大与人声增强。设置里新增 AI 人声降噪开关，默认开启；如果某台手机 native 模型不可用，会自动退回原来的系统降噪，不强制更新。"
 }

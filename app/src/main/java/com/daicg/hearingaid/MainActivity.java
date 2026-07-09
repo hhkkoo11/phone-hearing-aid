@@ -96,6 +96,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private Switch selfVoiceSwitch;
     private Switch voiceProfileSwitch;
     private Switch noiseSwitch;
+    private Switch aiNoiseSwitch;
     private Switch agcSwitch;
     private Switch autoMonitorSwitch;
     private Switch loudWarningSwitch;
@@ -115,6 +116,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private boolean echoCancellationEnabled;
     private boolean selfVoiceReductionEnabled;
     private boolean noiseSuppressionEnabled = true;
+    private boolean aiNoiseSuppressionEnabled = true;
     private boolean automaticGainEnabled;
     private String inputSourceMode = AppSettings.INPUT_PHONE_MIC;
     private String activeAppliedMode;
@@ -216,6 +218,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         echoCancellationEnabled = AppSettings.echoCancellationEnabled(this);
         selfVoiceReductionEnabled = AppSettings.selfVoiceReductionEnabled(this);
         noiseSuppressionEnabled = AppSettings.noiseSuppressionEnabled(this);
+        aiNoiseSuppressionEnabled = AppSettings.aiNoiseSuppressionEnabled(this);
         automaticGainEnabled = AppSettings.automaticGainEnabled(this);
         inputSourceMode = AppSettings.inputSourceMode(this);
         engine.setVoiceEnhancementEnabled(voiceEnhancementEnabled);
@@ -224,6 +227,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setEchoCancellationEnabled(echoCancellationEnabled);
         engine.setSelfVoiceReductionEnabled(selfVoiceReductionEnabled);
         engine.setNoiseSuppressionEnabled(noiseSuppressionEnabled);
+        engine.setAiNoiseSuppressionEnabled(aiNoiseSuppressionEnabled);
         engine.setAutomaticGainEnabled(automaticGainEnabled);
         engine.setInputSourceMode(inputSourceMode);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -759,6 +763,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 noiseSuppressionEnabled,
                 "\u5c3d\u91cf\u538b\u4f4e\u98ce\u58f0\u3001\u7a7a\u8c03\u58f0\u3001\u5e95\u566a\u3002",
                 this::setNoiseSuppressionEnabled);
+
+        aiNoiseSwitch = addSettingSwitch(
+                content,
+                "AI \u4eba\u58f0\u964d\u566a",
+                aiNoiseSuppressionEnabled,
+                "使用训练好的 RNNoise 模型，优先压低风声、电流感、环境杂音，再保留说话声。觉得发闷或延迟变明显时可以关掉。",
+                this::setAiNoiseSuppressionEnabled);
 
         agcSwitch = addSettingSwitch(
                 content,
@@ -1783,6 +1794,14 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         refreshListeningServiceIfActive();
     }
 
+    private void setAiNoiseSuppressionEnabled(boolean enabled) {
+        aiNoiseSuppressionEnabled = enabled;
+        engine.setAiNoiseSuppressionEnabled(enabled);
+        AppSettings.prefs(this).edit().putBoolean(AppSettings.KEY_AI_NOISE_SUPPRESSION, enabled).apply();
+        setSwitchChecked(aiNoiseSwitch, enabled);
+        refreshListeningServiceIfActive();
+    }
+
     private void setAutomaticGainEnabled(boolean enabled) {
         automaticGainEnabled = enabled;
         engine.setAutomaticGainEnabled(enabled);
@@ -1807,6 +1826,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
+        setAiNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
         suppressServiceRefresh = false;
@@ -1841,6 +1861,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
+        setAiNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
         suppressServiceRefresh = false;
@@ -1873,6 +1894,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
+        setAiNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
         suppressServiceRefresh = false;
@@ -1897,6 +1919,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
+        setAiNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
         suppressServiceRefresh = false;
@@ -1920,6 +1943,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
+        setAiNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
         setSystemMusicVolumeMax();
@@ -1943,6 +1967,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
+        setAiNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(true);
         setGainProgressForValue(AppSettings.gain(this));
         suppressServiceRefresh = false;

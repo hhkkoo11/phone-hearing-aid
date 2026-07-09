@@ -10,7 +10,19 @@ android {
         applicationId "com.daicg.hearingaid"
         minSdk 26
         targetSdk 35
-        versionCode 63
-        versionName "5.22"
+        versionCode 64
+        versionName "5.23"
+        externalNativeBuild {
+            cmake {
+                cppFlags ""
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.22.1"
+        }
     }
 }

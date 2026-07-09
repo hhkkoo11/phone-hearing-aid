@@ -48,6 +48,7 @@ public final class HearingEngine {
     private float gain = 2.0f;
     private float outputLimit = 0.68f;
     private boolean noiseSuppressionEnabled = true;
+    private boolean aiNoiseSuppressionEnabled = true;
     private boolean automaticGainEnabled;
     private boolean voiceEnhancementEnabled = true;
     private boolean farPickupEnabled = true;
@@ -83,6 +84,10 @@ public final class HearingEngine {
 
     public void setNoiseSuppressionEnabled(boolean enabled) {
         this.noiseSuppressionEnabled = enabled;
+    }
+
+    public void setAiNoiseSuppressionEnabled(boolean enabled) {
+        this.aiNoiseSuppressionEnabled = enabled;
     }
 
     public void setAutomaticGainEnabled(boolean enabled) {
@@ -171,8 +176,11 @@ public final class HearingEngine {
 
         boolean wiredRoute = hasWiredOutput();
         boolean bluetoothRoute = !wiredRoute && hasConnectedBluetoothAudioProfile();
-        int sampleRate = bluetoothRoute ? BLUETOOTH_SAMPLE_RATE : WIRED_SAMPLE_RATE;
-        int frameBuffer = bluetoothRoute ? BLUETOOTH_FRAME_BUFFER : WIRED_FRAME_BUFFER;
+        boolean aiNoiseEnabled = aiNoiseSuppressionEnabled && AiNoiseSuppressor.isAvailable();
+        int sampleRate = aiNoiseEnabled ? WIRED_SAMPLE_RATE
+                : (bluetoothRoute ? BLUETOOTH_SAMPLE_RATE : WIRED_SAMPLE_RATE);
+        int frameBuffer = aiNoiseEnabled ? AiNoiseSuppressor.frameSize()
+                : (bluetoothRoute ? BLUETOOTH_FRAME_BUFFER : WIRED_FRAME_BUFFER);
 
         int minIn = AudioRecord.getMinBufferSize(sampleRate, CHANNEL_IN, ENCODING);
         int minOut = AudioTrack.getMinBufferSize(sampleRate, CHANNEL_OUT, ENCODING);
@@ -190,6 +198,7 @@ public final class HearingEngine {
         AcousticEchoCanceler echoCanceler = null;
         NoiseSuppressor noiseSuppressor = null;
         AutomaticGainControl automaticGain = null;
+        AiNoiseSuppressor aiNoiseSuppressor = null;
 
         try {
             record = new AudioRecord.Builder()
@@ -263,6 +272,9 @@ public final class HearingEngine {
                     selfVoiceProfileDiffRatio,
                     selfVoiceProfilePeakRatio,
                     boneConductionNoiseControlEnabled);
+            if (aiNoiseEnabled) {
+                aiNoiseSuppressor = AiNoiseSuppressor.create();
+            }
             FeedbackGuard feedbackGuard = new FeedbackGuard();
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
@@ -272,6 +284,9 @@ public final class HearingEngine {
                 int read = record.read(buffer, 0, buffer.length, AudioRecord.READ_BLOCKING);
                 if (read <= 0) {
                     continue;
+                }
+                if (aiNoiseSuppressor != null) {
+                    aiNoiseSuppressor.processInPlace(buffer, read);
                 }
                 float level = processAndMeasure(buffer, read, gain,
                         outputLimit, voiceEnhancementEnabled, farPickupEnabled, longRangePickupEnabled,
@@ -294,6 +309,9 @@ public final class HearingEngine {
                     ? "\u5b9e\u65f6\u76d1\u542c\u542f\u52a8\u5931\u8d25"
                     : e.getMessage());
         } finally {
+            if (aiNoiseSuppressor != null) {
+                aiNoiseSuppressor.close();
+            }
             releaseEffect(automaticGain);
             releaseEffect(noiseSuppressor);
             releaseEffect(echoCanceler);
