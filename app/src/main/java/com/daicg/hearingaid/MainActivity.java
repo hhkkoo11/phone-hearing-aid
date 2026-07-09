@@ -79,6 +79,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private TextView statusText;
     private TextView gainText;
     private TextView modeStatusText;
+    private TextView soundStatusText;
     private ProgressBar levelMeter;
     private Button toggleButton;
     private Button pauseAutoButton;
@@ -276,7 +277,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
     @Override
     public void onLevel(float level) {
-        runOnUiThread(() -> levelMeter.setProgress(Math.round(level * 100)));
+        runOnUiThread(() -> updateSoundReaction(level));
     }
 
     @Override
@@ -379,7 +380,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 4.3\uff1a\u65b0\u589e\u6536\u97f3\u6765\u6e90\u5207\u6362");
+        versionText.setText("\u7248\u672c 4.4\uff1a\u6536\u97f3\u53cd\u5e94\u66f4\u76f4\u89c2");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -487,16 +488,23 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(makeHelpText("\u6700\u5927\u6863\uff1a\u5df2\u7ecf\u662f\u8fd9\u4e2a App \u7684\u6700\u5927\u653e\u5927\u3002\u5982\u679c\u5578\u53eb\u6216\u523a\u8033\uff0c\u9a6c\u4e0a\u6309 -\u3002"), matchWidthWrapHeight());
 
         TextView levelLabel = new TextView(this);
-        levelLabel.setText("\u8f93\u5165\u7535\u5e73");
+        levelLabel.setText("\u6536\u97f3\u53cd\u5e94");
         levelLabel.setTextSize(16);
         levelLabel.setTextColor(0xFF10231F);
         levelLabel.setPadding(0, dp(26), 0, dp(8));
         root.addView(levelLabel, matchWidthWrapHeight());
 
+        soundStatusText = new TextView(this);
+        soundStatusText.setText("\u6ca1\u6709\u660e\u663e\u58f0\u97f3");
+        soundStatusText.setTextSize(15);
+        soundStatusText.setTextColor(0xFF315048);
+        soundStatusText.setPadding(0, 0, 0, dp(6));
+        root.addView(soundStatusText, matchWidthWrapHeight());
+
         levelMeter = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         levelMeter.setMax(100);
         root.addView(levelMeter, matchWidthFixedHeight(22));
-        root.addView(makeHelpText("\u8f93\u5165\u7535\u5e73\uff1a\u8fd9\u6761\u662f\u624b\u673a\u9ea6\u514b\u98ce\u73b0\u5728\u6536\u5230\u7684\u58f0\u97f3\u5927\u5c0f\uff0c\u4e0d\u662f\u8033\u673a\u97f3\u91cf\u3002"), matchWidthWrapHeight());
+        root.addView(makeHelpText("\u8fd9\u6761\u4f1a\u968f\u7740\u9ea6\u514b\u98ce\u6536\u5230\u7684\u58f0\u97f3\u4e00\u8df3\u4e00\u8df3\u3002\u5b83\u53ea\u8868\u793a\u6709\u6ca1\u6709\u6536\u5230\u58f0\u97f3\uff0c\u4e0d\u662f\u8033\u673a\u97f3\u91cf\u3002"), matchWidthWrapHeight());
 
         TextView footerText = new TextView(this);
         footerText.setText("\u795d\u60a8\u4f7f\u7528\u987a\u5229\uff0c\u5982\u679c\u4f7f\u7528\u4e2d\u9047\u5230\u95ee\u9898\uff0c\u8bf7\u8054\u7cfb\u6211\u3002\u8f6f\u4ef6\u6c38\u4e45\u514d\u8d39\uff0c\u80fd\u5e2e\u52a9\u5230\u60a8\u662f\u6211\u7684\u8363\u5e78\u3002");
@@ -1382,7 +1390,25 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             HearingAidService.stop(this);
             setRunningUi(false);
             levelMeter.setProgress(0);
+            updateSoundReaction(0.0f);
             toast("\u8033\u673a\u5df2\u79fb\u9664\uff0c\u5df2\u505c\u6b62\u52a9\u542c");
+        }
+    }
+
+    private void updateSoundReaction(float level) {
+        int progress = Math.max(0, Math.min(100, Math.round(level * 100)));
+        if (levelMeter != null) {
+            levelMeter.setProgress(progress);
+        }
+        if (soundStatusText == null) {
+            return;
+        }
+        if (progress >= 18) {
+            soundStatusText.setText("\u6536\u5230\u58f0\u97f3");
+        } else if (progress >= 6) {
+            soundStatusText.setText("\u6536\u5230\u4e00\u70b9\u58f0\u97f3");
+        } else {
+            soundStatusText.setText("\u6ca1\u6709\u660e\u663e\u58f0\u97f3");
         }
     }
 
