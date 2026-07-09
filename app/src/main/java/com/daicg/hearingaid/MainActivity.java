@@ -56,7 +56,7 @@ import java.util.Set;
 public final class MainActivity extends Activity implements HearingEngine.Listener {
     private static final int REQUEST_AUDIO_PERMISSIONS = 1001;
     private static final String UPDATE_JSON_URL =
-            "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/version.json";
+            "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/classic-version.json";
     private static volatile boolean visible;
 
     private HearingEngine engine;
@@ -81,6 +81,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private Switch loudWarningSwitch;
     private Switch syncPhoneVolumeSwitch;
     private Switch voiceGuideSwitch;
+    private Switch phoneMicInputSwitch;
     private boolean suppressVolumeSync;
     private int lastSeenSystemVolume = -1;
     private long updateDownloadId = -1L;
@@ -169,6 +170,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         engine = new HearingEngine(this, this);
+        engine.setPhoneMicInputEnabled(AppSettings.phoneMicInputEnabled(this));
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         textToSpeech = new TextToSpeech(this, status -> {
@@ -327,7 +329,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 1.6\uff1a\u5df2\u52a0\u516c\u76ca\u8bf4\u660e");
+        versionText.setText("\u7ecf\u5178\u7248 2.5\uff1a\u624b\u673a\u6536\u97f3\uff0c\u8033\u673a\u64ad\u653e");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
@@ -565,6 +567,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 farPickupEnabled,
                 "\u60f3\u542c\u8fdc\u4e00\u70b9\u7684\u4eba\u8bf4\u8bdd\u5c31\u6253\u5f00\uff0c\u4f46\u6742\u97f3\u4e5f\u4f1a\u53d8\u591a\u3002",
                 this::setFarPickupEnabled);
+
+        phoneMicInputSwitch = addSettingSwitch(
+                content,
+                "\u624b\u673a\u9ea6\u514b\u98ce\u6536\u97f3",
+                AppSettings.phoneMicInputEnabled(this),
+                "\u5efa\u8bae\u6253\u5f00\uff1a\u624b\u673a\u8d1f\u8d23\u6536\u97f3\uff0c\u8033\u673a\u53ea\u8d1f\u8d23\u64ad\u653e\uff0c\u53ef\u4ee5\u907f\u514d\u90e8\u5206\u8033\u673a\u9ea6\u514b\u98ce\u7684\u6ecb\u6ecb\u7535\u6d41\u58f0\u3002\u5173\u6389\u540e\u624d\u4f1a\u4f18\u5148\u7528\u8033\u673a\u9ea6\u514b\u98ce\u3002",
+                this::setPhoneMicInputEnabled);
 
         wiredAutoStartSwitch = addSettingSwitch(
                 content,
@@ -1014,6 +1023,22 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         automaticGainEnabled = enabled;
         engine.setAutomaticGainEnabled(enabled);
         setSwitchChecked(agcSwitch, enabled);
+    }
+
+    private void setPhoneMicInputEnabled(boolean enabled) {
+        AppSettings.prefs(this).edit()
+                .putBoolean(AppSettings.KEY_PHONE_MIC_INPUT, enabled)
+                .apply();
+        engine.setPhoneMicInputEnabled(enabled);
+        setSwitchChecked(phoneMicInputSwitch, enabled);
+        if (engine.isRunning()) {
+            engine.stop();
+            engine.start();
+            setRunningUi(true);
+        }
+        toast(enabled
+                ? "\u5df2\u6539\u7528\u624b\u673a\u9ea6\u514b\u98ce\u6536\u97f3"
+                : "\u5df2\u6539\u4e3a\u4f18\u5148\u7528\u8033\u673a\u9ea6\u514b\u98ce");
     }
 
     private void applySafeMode() {

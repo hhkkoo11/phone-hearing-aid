@@ -48,6 +48,7 @@ public final class HearingEngine {
     private boolean farPickupEnabled = true;
     private boolean feedbackProtectionEnabled = true;
     private boolean ownVoiceSuppressionEnabled = true;
+    private boolean phoneMicInputEnabled = true;
 
     public HearingEngine(Context context, Listener listener) {
         this.context = context.getApplicationContext();
@@ -90,6 +91,10 @@ public final class HearingEngine {
 
     public void setOwnVoiceSuppressionEnabled(boolean enabled) {
         this.ownVoiceSuppressionEnabled = enabled;
+    }
+
+    public void setPhoneMicInputEnabled(boolean enabled) {
+        this.phoneMicInputEnabled = enabled;
     }
 
     public void start() {
@@ -373,6 +378,12 @@ public final class HearingEngine {
     }
 
     private AudioDeviceInfo findPreferredInputDevice() {
+        if (phoneMicInputEnabled) {
+            AudioDeviceInfo builtInMic = findBuiltInMicInputDevice();
+            if (builtInMic != null) {
+                return builtInMic;
+            }
+        }
         AudioDeviceInfo bluetooth = null;
         AudioDeviceInfo fallback = null;
         for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)) {
@@ -387,6 +398,23 @@ public final class HearingEngine {
             }
         }
         return bluetooth != null ? bluetooth : fallback;
+    }
+
+    private AudioDeviceInfo findBuiltInMicInputDevice() {
+        AudioDeviceInfo fallback = null;
+        for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)) {
+            if (!device.isSource()) {
+                continue;
+            }
+            int type = device.getType();
+            if (type == AudioDeviceInfo.TYPE_BUILTIN_MIC) {
+                return device;
+            }
+            if (fallback == null && !isWiredInput(type) && !isBluetoothInput(type)) {
+                fallback = device;
+            }
+        }
+        return fallback;
     }
 
     private AudioDeviceInfo findPreferredOutputDevice() {

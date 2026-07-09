@@ -11,6 +11,7 @@ final class AppSettings {
     static final String KEY_VOICE_GUIDE = "voice_guide";
     static final String KEY_SCENE_MODE = "scene_mode";
     static final String KEY_WIRED_AUTO_START = "wired_auto_start";
+    static final String KEY_PHONE_MIC_INPUT = "phone_mic_input";
 
     static final String MODE_BLUETOOTH_DAILY = "bluetooth_daily";
     static final String MODE_WIRED_INDOOR = "wired_indoor";
@@ -42,6 +43,10 @@ final class AppSettings {
 
     static boolean wiredAutoStartEnabled(Context context) {
         return prefs(context).getBoolean(KEY_WIRED_AUTO_START, true);
+    }
+
+    static boolean phoneMicInputEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_PHONE_MIC_INPUT, true);
     }
 
     static String sceneMode(Context context) {

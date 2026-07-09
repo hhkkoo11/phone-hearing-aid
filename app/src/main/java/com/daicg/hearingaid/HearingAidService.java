@@ -115,5 +115,6 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setAutomaticGainEnabled(false);
         }
         engine.setFeedbackProtectionEnabled(true);
+        engine.setPhoneMicInputEnabled(AppSettings.phoneMicInputEnabled(this));
     }
 }
