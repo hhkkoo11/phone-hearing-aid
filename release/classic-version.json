@@ -1,7 +1,7 @@
 {
-  "versionCode": 22,
-  "versionName": "classic-3.1",
+  "versionCode": 23,
+  "versionName": "classic-3.2",
   "packageName": "com.daicg.hearingaid.classic",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
-  "notes": "经典版：默认关闭“减少自己声音”，不再默认压低近距离大声，从而恢复人声响度；保留手机麦克风收音、底噪门和滋滋声过滤。云更新不强制。"
+  "notes": "经典版：远距离收声增强。放宽远距离模式的人声触发，减少把 5 米左右小声人声当底噪压掉的情况；有线室内也默认开启远距离收声；最大增益提高到 72x。云更新不强制。"
 }
