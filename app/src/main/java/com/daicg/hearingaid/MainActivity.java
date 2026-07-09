@@ -1834,11 +1834,12 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setOutputLimit(0.74f);
         engine.setFeedbackProtectionEnabled(true);
         setBoneNoiseControlEnabled(false);
+        setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
         setVoiceEnhancementEnabled(true);
-        setFarPickupEnabled(true);
+        setFarPickupEnabled(false);
         setLongRangePickupEnabled(false);
         setEchoCancellationEnabled(false);
-        setSelfVoiceReductionEnabled(true);
+        setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(AppSettings.gain(this));
@@ -1912,9 +1913,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setOutputLimit(0.90f);
         engine.setFeedbackProtectionEnabled(true);
         setBoneNoiseControlEnabled(true);
+        setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
         setVoiceEnhancementEnabled(true);
-        setFarPickupEnabled(true);
-        setLongRangePickupEnabled(true);
+        setFarPickupEnabled(false);
+        setLongRangePickupEnabled(false);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
         setNoiseSuppressionEnabled(true);

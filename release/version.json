@@ -1,7 +1,7 @@
 {
-  "versionCode": 56,
-  "versionName": "5.15",
+  "versionCode": 57,
+  "versionName": "5.16",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
   "forceUpdate": false,
-  "notes": "森林/户外降杂音版：保留原始音色的大声直接放大，但加入动态环境地板和回声尾巴削减，压低森林里持续的小碎声、风声、叶子声和空间回声，尽量保留突然出现的人声。云更新不强制。"
+  "notes": "骨传导稳定收音版：蓝牙/骨传导默认改为手机麦克风收音，关闭远距离收声、5米远距离和回声消除，避免耳机麦克风把自己的声音、震动、环境反射放成森林回声感；保留原始音色的大声直接放大和降噪。云更新不强制。"
 }
