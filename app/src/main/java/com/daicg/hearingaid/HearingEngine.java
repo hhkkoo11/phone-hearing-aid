@@ -187,6 +187,11 @@ public final class HearingEngine {
                 return;
             }
 
+            AudioDeviceInfo preferredInput = findPreferredInputDevice();
+            if (preferredInput != null) {
+                record.setPreferredDevice(preferredInput);
+            }
+
             AudioDeviceInfo preferredOutput = findPreferredOutputDevice();
             if (preferredOutput != null) {
                 track.setPreferredDevice(preferredOutput);
@@ -361,6 +366,23 @@ public final class HearingEngine {
         return hasConnectedBluetoothAudioProfile();
     }
 
+    private AudioDeviceInfo findPreferredInputDevice() {
+        AudioDeviceInfo bluetooth = null;
+        AudioDeviceInfo fallback = null;
+        for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)) {
+            int type = device.getType();
+            if (isWiredInput(type)) {
+                return device;
+            }
+            if (isBluetoothInput(type)) {
+                bluetooth = device;
+            } else if (fallback == null && device.isSource()) {
+                fallback = device;
+            }
+        }
+        return bluetooth != null ? bluetooth : fallback;
+    }
+
     private AudioDeviceInfo findPreferredOutputDevice() {
         AudioDeviceInfo bluetooth = null;
         for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
@@ -415,6 +437,18 @@ public final class HearingEngine {
                 || type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
                 || type == AudioDeviceInfo.TYPE_BLE_HEADSET
                 || type == AudioDeviceInfo.TYPE_BLE_SPEAKER;
+    }
+
+    private static boolean isWiredInput(int type) {
+        return type == AudioDeviceInfo.TYPE_WIRED_HEADSET
+                || type == AudioDeviceInfo.TYPE_USB_HEADSET
+                || type == AudioDeviceInfo.TYPE_USB_DEVICE
+                || type == AudioDeviceInfo.TYPE_USB_ACCESSORY;
+    }
+
+    private static boolean isBluetoothInput(int type) {
+        return type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+                || type == AudioDeviceInfo.TYPE_BLE_HEADSET;
     }
 
     private static final class VoiceProcessor {

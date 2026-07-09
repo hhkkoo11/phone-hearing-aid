@@ -10,7 +10,7 @@ android {
         applicationId "com.daicg.hearingaid.classic"
         minSdk 26
         targetSdk 35
-        versionCode 11
-        versionName "classic-2.0"
+        versionCode 12
+        versionName "classic-2.1"
     }
 }
