@@ -125,7 +125,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private final Runnable volumeSyncPoller = new Runnable() {
         @Override
         public void run() {
-            syncGainFromSystemVolumeIfChanged();
+            rememberSystemVolume();
             mainHandler.postDelayed(this, 350);
         }
     };
@@ -134,7 +134,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         @Override
         public void onChange(boolean selfChange) {
             super.onChange(selfChange);
-            syncGainFromSystemVolume();
+            rememberSystemVolume();
         }
     };
 
@@ -1548,29 +1548,18 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void syncGainFromSystemVolume() {
-        if (!isSyncPhoneVolumeEnabled() || gainSeek == null) {
-            return;
-        }
-        int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-        int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-        lastSeenSystemVolume = currentVolume;
-        int progress = Math.round((currentVolume / (float) Math.max(1, maxVolume)) * gainSeek.getMax());
-        suppressVolumeSync = true;
-        try {
-            gainSeek.setProgress(Math.max(0, Math.min(progress, gainSeek.getMax())));
-        } finally {
-            suppressVolumeSync = false;
-        }
+        rememberSystemVolume();
     }
 
     private void syncGainFromSystemVolumeIfChanged() {
-        if (!isSyncPhoneVolumeEnabled() || gainSeek == null) {
+        rememberSystemVolume();
+    }
+
+    private void rememberSystemVolume() {
+        if (audioManager == null) {
             return;
         }
-        int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-        if (currentVolume != lastSeenSystemVolume) {
-            syncGainFromSystemVolume();
-        }
+        lastSeenSystemVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
     }
 
     private LinearLayout.LayoutParams weightedButtonParams() {
