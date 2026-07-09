@@ -1,7 +1,7 @@
 {
-  "versionCode": 4,
-  "versionName": "classic-1.3",
+  "versionCode": 5,
+  "versionName": "classic-1.4",
   "packageName": "com.daicg.hearingaid.classic",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
-  "notes": "经典增强版：保留初代简约收音逻辑，温和强化人声边缘和中等人声；修复 Android 15/MIUI 上后台耳机监测服务导致的启动闪退。"
+  "notes": "经典增强版：进一步压低 App 内采集到播放的缓冲延迟，同时继续强化人声边缘和中等人声清晰度；蓝牙耳机仍会受耳机和系统蓝牙协议固定延迟影响。"
 }
