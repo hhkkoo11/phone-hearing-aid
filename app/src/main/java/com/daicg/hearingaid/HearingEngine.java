@@ -467,12 +467,12 @@ public final class HearingEngine {
         }
         bluetooth |= hasConnectedBluetoothAudioProfile();
         if (wired) {
-            return "\u6709\u7ebf\u8033\u673a\u5df2\u8fde\u63a5\uff0c\u4f4e\u5ef6\u8fdf\u4f18\u5148";
+            return "\u6709\u7ebf\u8033\u673a\u5df2\u8fde\u63a5";
         }
         if (bluetooth) {
-            return "\u84dd\u7259\u8033\u673a\u5df2\u8fde\u63a5\uff0cApp \u5185\u90e8\u5df2\u538b\u4f4e\u5ef6\u8fdf";
+            return "\u84dd\u7259\u8033\u673a\u5df2\u8fde\u63a5";
         }
-        return "\u672a\u68c0\u6d4b\u5230\u8033\u673a\uff0c\u8bf7\u8fde\u63a5\u6709\u7ebf\u6216\u84dd\u7259\u8033\u673a";
+        return "\u8bf7\u8fde\u63a5\u8033\u673a";
     }
 
     public boolean hasWiredOutput() {
@@ -555,10 +555,14 @@ public final class HearingEngine {
     }
 
     public boolean hasConnectedBluetoothAudioProfile() {
-        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
+        if (bluetoothAdapter == null || !hasBluetoothConnectPermission()) {
             return false;
         }
-        if (!hasBluetoothConnectPermission()) {
+        try {
+            if (!bluetoothAdapter.isEnabled()) {
+                return false;
+            }
+        } catch (SecurityException ignored) {
             return false;
         }
         try {

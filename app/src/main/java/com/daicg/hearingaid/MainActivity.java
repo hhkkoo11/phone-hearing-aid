@@ -39,6 +39,7 @@ import android.speech.tts.TextToSpeech;
 import android.speech.tts.Voice;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -210,6 +211,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         engine = new HearingEngine(this, this);
         applySelfVoiceProfileToEngine();
         voiceEnhancementEnabled = AppSettings.voiceEnhancementEnabled(this);
@@ -265,7 +267,6 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             pendingInstallUri = null;
             installDownloadedApk(uri);
         }
-        mainHandler.postDelayed(this::autoCheckPermissionHealthIfNeeded, 700);
     }
 
     @Override
@@ -363,9 +364,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void buildUi() {
-        int pad = dp(20);
+        int pad = dp(22);
         ScrollView scrollView = new ScrollView(this);
-        scrollView.setFillViewport(false);
+        scrollView.setFillViewport(true);
         scrollView.setBackgroundColor(0xFFF5F7F6);
 
         LinearLayout root = new LinearLayout(this);
@@ -376,56 +377,40 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
 
         LinearLayout topActions = new LinearLayout(this);
         topActions.setOrientation(LinearLayout.HORIZONTAL);
-        topActions.setGravity(Gravity.RIGHT);
+        topActions.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
 
-        Button tutorialButton = new Button(this);
-        tutorialButton.setText("\u6559\u7a0b");
-        tutorialButton.setTextSize(15);
-        tutorialButton.setAllCaps(false);
-        tutorialButton.setOnClickListener(v -> showTutorialDialog());
-        topActions.addView(tutorialButton, weightedButtonParams());
+        TextView appName = new TextView(this);
+        appName.setText("助听器");
+        appName.setTextSize(20);
+        appName.setTextColor(0xFF10231F);
+        appName.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+        topActions.addView(appName, weightedButtonParams());
 
         Button settingsButton = new Button(this);
         settingsButton.setText("\u8bbe\u7f6e");
-        settingsButton.setTextSize(15);
+        settingsButton.setTextSize(14);
         settingsButton.setAllCaps(false);
-        settingsButton.setOnClickListener(v -> showSettingsDialog());
+        settingsButton.setOnClickListener(v -> showSimpleSettingsDialog());
         topActions.addView(settingsButton, weightedButtonParams());
-        root.addView(topActions, matchWidthFixedHeight(46));
+        root.addView(topActions, matchWidthFixedHeight(52));
 
         statusText = new TextView(this);
-        statusText.setTextSize(16);
+        statusText.setTextSize(22);
         statusText.setTextColor(0xFF315048);
         statusText.setGravity(Gravity.CENTER);
-        statusText.setPadding(0, dp(2), 0, dp(8));
+        statusText.setPadding(0, dp(22), 0, dp(8));
         root.addView(statusText, matchWidthWrapHeight());
-
-        TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 5.5\uff1a\u9aa8\u4f20\u5bfc\u4eba\u58f0\u6700\u5927\u5316");
-        versionText.setTextSize(13);
-        versionText.setTextColor(0xFF5A6B66);
-        versionText.setGravity(Gravity.CENTER);
-        versionText.setPadding(0, 0, 0, dp(8));
-        root.addView(versionText, matchWidthWrapHeight());
-
-        TextView offlineText = new TextView(this);
-        offlineText.setText("\u79bb\u7ebf\u53ef\u7528\uff1a\u6ca1\u6709\u7f51\u7edc\u4e5f\u80fd\u52a9\u542c\u548c\u91c7\u96c6\u6d4b\u8bd5\u6570\u636e");
-        offlineText.setTextSize(14);
-        offlineText.setTextColor(0xFF315048);
-        offlineText.setGravity(Gravity.CENTER);
-        offlineText.setPadding(0, 0, 0, dp(8));
-        root.addView(offlineText, matchWidthWrapHeight());
 
         modeStatusText = new TextView(this);
         modeStatusText.setTextSize(17);
         modeStatusText.setTextColor(0xFF10231F);
         modeStatusText.setGravity(Gravity.CENTER);
-        modeStatusText.setPadding(0, 0, 0, dp(10));
+        modeStatusText.setPadding(0, 0, 0, dp(18));
         root.addView(modeStatusText, matchWidthWrapHeight());
 
         toggleButton = new Button(this);
-        toggleButton.setText("\u5f00\u59cb\u52a9\u542c");
-        toggleButton.setTextSize(18);
+        toggleButton.setText("\u5f00\u59cb");
+        toggleButton.setTextSize(24);
         toggleButton.setAllCaps(false);
         toggleButton.setOnClickListener(v -> {
             if (isListeningActive()) {
@@ -437,21 +422,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 ensurePermissionsThenStart();
             }
         });
-        root.addView(toggleButton, matchWidthFixedHeight(56));
-        root.addView(makeHelpText("\u5f00\u59cb/\u505c\u6b62\uff1a\u628a\u624b\u673a\u6536\u5230\u7684\u58f0\u97f3\u9001\u5230\u8033\u673a\u91cc\u3002"), matchWidthWrapHeight());
-
-        pauseAutoButton = new Button(this);
-        pauseAutoButton.setTextSize(16);
-        pauseAutoButton.setAllCaps(false);
-        pauseAutoButton.setOnClickListener(v ->
-                setAutoListenPaused(!AppSettings.autoListenPaused(this), true));
-        root.addView(pauseAutoButton, matchWidthFixedHeight(48));
-        root.addView(makeHelpText("\u542c\u6b4c/\u5237\u89c6\u9891\u65f6\u70b9\u6682\u505c\uff0c\u8033\u673a\u5c31\u5f53\u666e\u901a\u8033\u673a\u7528\uff1b\u9700\u8981\u52a9\u542c\u65f6\u518d\u6062\u590d\u3002"), matchWidthWrapHeight());
+        root.addView(toggleButton, matchWidthFixedHeight(76));
 
         gainText = new TextView(this);
-        gainText.setText(String.format(Locale.US, "\u589e\u76ca %.1fx", AppSettings.gain(this)));
-        gainText.setTextSize(16);
+        gainText.setText(String.format(Locale.US, "\u58f0\u97f3 %.0f", AppSettings.gain(this)));
+        gainText.setTextSize(18);
         gainText.setTextColor(0xFF10231F);
+        gainText.setGravity(Gravity.CENTER);
         gainText.setPadding(0, dp(28), 0, dp(8));
         root.addView(gainText, matchWidthWrapHeight());
 
@@ -463,7 +440,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float gain = 0.2f + progress / 10.0f;
                 engine.setGain(gain);
-                gainText.setText(String.format(Locale.US, "\u589e\u76ca %.1fx", gain));
+                gainText.setText(String.format(Locale.US, "\u58f0\u97f3 %.0f", gain));
                 AppSettings.prefs(MainActivity.this).edit()
                         .putFloat(AppSettings.KEY_GAIN, gain)
                         .apply();
@@ -478,69 +455,47 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 restartListeningServiceIfActive();
             }
         });
-        root.addView(gainSeek, matchWidthWrapHeight());
 
         LinearLayout gainButtons = new LinearLayout(this);
         gainButtons.setOrientation(LinearLayout.HORIZONTAL);
         gainButtons.setGravity(Gravity.CENTER);
-        gainButtons.setPadding(0, dp(10), 0, dp(4));
+        gainButtons.setPadding(0, dp(8), 0, dp(8));
 
-        Button minusButton = makeGainButton("-");
+        Button minusButton = makeGainButton("\u5c0f\u4e00\u70b9");
         minusButton.setOnClickListener(v -> adjustGainBy(-1.0f));
         gainButtons.addView(minusButton, weightedButtonParams());
 
-        Button plusButton = makeGainButton("+");
+        Button plusButton = makeGainButton("\u5927\u4e00\u70b9");
         plusButton.setOnClickListener(v -> adjustGainBy(1.0f));
         gainButtons.addView(plusButton, weightedButtonParams());
 
-        root.addView(gainButtons, matchWidthFixedHeight(78));
-        root.addView(makeHelpText("+ / -\uff1a\u8c03\u5927\u6216\u8c03\u5c0f\u58f0\u97f3\uff0c\u6bcf\u6b21\u8c03\u4e00\u5c0f\u683c\u3002"), matchWidthWrapHeight());
+        root.addView(gainButtons, matchWidthFixedHeight(92));
 
-        TextView modeLabel = new TextView(this);
-        modeLabel.setText("\u81ea\u52a8\u6a21\u5f0f");
-        modeLabel.setTextSize(16);
-        modeLabel.setTextColor(0xFF10231F);
-        modeLabel.setPadding(0, dp(16), 0, dp(8));
-        root.addView(modeLabel, matchWidthWrapHeight());
-        root.addView(makeHelpText("\u81ea\u52a8\u8bc6\u522b\u8033\u673a\u7c7b\u578b\uff1a\u84dd\u7259\u8033\u673a\u7528\u65e5\u5e38\u4f18\u5316\uff0c\u6709\u7ebf/USB \u8033\u673a\u7528\u5ba4\u5185\u5bf9\u8bdd\u4f18\u5316\u3002"), matchWidthWrapHeight());
-
-        Button maxButton = new Button(this);
-        maxButton.setText("\u6700\u5927\u6863");
-        maxButton.setTextSize(16);
-        maxButton.setAllCaps(false);
-        maxButton.setOnClickListener(v -> {
-            engine.setOutputLimit(0.96f);
-            setGainProgressForValue(120.0f);
-            toast("\u5df2\u5230\u6700\u5927\u6863\uff0c\u8bf7\u6ce8\u610f\u9632\u6b62\u5578\u53eb\u548c\u8033\u75db");
-        });
-        root.addView(maxButton, matchWidthFixedHeight(48));
-        root.addView(makeHelpText("\u6700\u5927\u6863\uff1a\u8fd9\u662f 120 \u500d\u6781\u9650\u58f0\u6863\u3002\u5982\u679c\u6709\u6ecb\u6ecb\u58f0\u3001\u5578\u53eb\u6216\u523a\u8033\uff0c\u9a6c\u4e0a\u6309 -\u3002"), matchWidthWrapHeight());
-
-        TextView levelLabel = new TextView(this);
-        levelLabel.setText("\u6536\u97f3\u53cd\u5e94");
-        levelLabel.setTextSize(16);
-        levelLabel.setTextColor(0xFF10231F);
-        levelLabel.setPadding(0, dp(26), 0, dp(8));
-        root.addView(levelLabel, matchWidthWrapHeight());
+        pauseAutoButton = new Button(this);
+        pauseAutoButton.setTextSize(18);
+        pauseAutoButton.setAllCaps(false);
+        pauseAutoButton.setOnClickListener(v ->
+                setAutoListenPaused(!AppSettings.autoListenPaused(this), true));
+        root.addView(pauseAutoButton, matchWidthFixedHeight(56));
 
         soundStatusText = new TextView(this);
         soundStatusText.setText("\u6ca1\u6709\u660e\u663e\u58f0\u97f3");
-        soundStatusText.setTextSize(15);
+        soundStatusText.setTextSize(16);
         soundStatusText.setTextColor(0xFF315048);
-        soundStatusText.setPadding(0, 0, 0, dp(6));
+        soundStatusText.setGravity(Gravity.CENTER);
+        soundStatusText.setPadding(0, dp(24), 0, dp(6));
         root.addView(soundStatusText, matchWidthWrapHeight());
 
         levelMeter = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         levelMeter.setMax(100);
-        root.addView(levelMeter, matchWidthFixedHeight(22));
-        root.addView(makeHelpText("\u8fd9\u6761\u4f1a\u968f\u7740\u9ea6\u514b\u98ce\u6536\u5230\u7684\u58f0\u97f3\u4e00\u8df3\u4e00\u8df3\u3002\u5b83\u53ea\u8868\u793a\u6709\u6ca1\u6709\u6536\u5230\u58f0\u97f3\uff0c\u4e0d\u662f\u8033\u673a\u97f3\u91cf\u3002"), matchWidthWrapHeight());
+        root.addView(levelMeter, matchWidthFixedHeight(18));
 
         TextView footerText = new TextView(this);
-        footerText.setText("\u795d\u60a8\u4f7f\u7528\u987a\u5229\uff0c\u5982\u679c\u4f7f\u7528\u4e2d\u9047\u5230\u95ee\u9898\uff0c\u8bf7\u8054\u7cfb\u6211\u3002\u8f6f\u4ef6\u6c38\u4e45\u514d\u8d39\uff0c\u80fd\u5e2e\u52a9\u5230\u60a8\u662f\u6211\u7684\u8363\u5e78\u3002");
+        footerText.setText("\u795d\u60a8\u4f7f\u7528\u987a\u5229\uff0c\u8f6f\u4ef6\u6c38\u4e45\u514d\u8d39\u3002");
         footerText.setTextSize(14);
         footerText.setTextColor(0xFF5A6B66);
         footerText.setGravity(Gravity.CENTER);
-        footerText.setPadding(0, dp(28), 0, dp(12));
+        footerText.setPadding(0, dp(34), 0, dp(12));
         root.addView(footerText, matchWidthWrapHeight());
 
         scrollView.addView(root);
@@ -550,7 +505,6 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         if (AppSettings.autoMonitorEnabled(this)) {
             HeadsetMonitorService.start(this);
         }
-        mainHandler.postDelayed(this::showOneTimeSetupHintIfNeeded, 900);
     }
 
     private Switch makeSwitch(String text, boolean checked) {
@@ -566,7 +520,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private Button makeGainButton(String text) {
         Button button = new Button(this);
         button.setText(text);
-        button.setTextSize(34);
+        button.setTextSize(24);
         button.setAllCaps(false);
         return button;
     }
@@ -587,6 +541,75 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         view.setTextColor(0xFF10231F);
         view.setPadding(0, dp(14), 0, dp(4));
         return view;
+    }
+
+    private void showSimpleSettingsDialog() {
+        int pad = dp(18);
+        ScrollView scrollView = new ScrollView(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(pad, dp(6), pad, dp(10));
+
+        wiredAutoStartSwitch = addSettingSwitch(
+                content,
+                "\u8033\u673a\u8fde\u4e0a\u81ea\u52a8\u5f00\u59cb",
+                isWiredAutoStartEnabled(),
+                "\u6253\u5f00\u540e\uff0c\u63d2\u4e0a\u6709\u7ebf\u8033\u673a\u6216\u8fde\u4e0a\u84dd\u7259\u8033\u673a\uff0cApp \u4f1a\u81ea\u52a8\u51c6\u5907\u52a9\u542c\u3002",
+                isChecked -> {
+                    AppSettings.prefs(this).edit()
+                            .putBoolean(AppSettings.KEY_WIRED_AUTO_START, isChecked)
+                            .apply();
+                    if (isChecked) {
+                        HeadsetMonitorService.start(this);
+                        autoStartIfHeadsetAlreadyConnected();
+                    }
+                });
+
+        autoMonitorSwitch = addSettingSwitch(
+                content,
+                "\u540e\u53f0\u7b49\u8033\u673a",
+                AppSettings.autoMonitorEnabled(this),
+                "\u4e0d\u6253\u5f00 App \u65f6\u4e5f\u4f1a\u5c3d\u91cf\u76d1\u6d4b\u8033\u673a\u8fde\u63a5\u3002",
+                isChecked -> {
+                    AppSettings.prefs(this).edit()
+                            .putBoolean(AppSettings.KEY_AUTO_MONITOR, isChecked)
+                            .apply();
+                    if (isChecked) {
+                        HeadsetMonitorService.start(this);
+                    } else {
+                        HeadsetMonitorService.stop(this);
+                        HearingAidService.stop(this);
+                    }
+                });
+
+        voiceGuideSwitch = addSettingSwitch(
+                content,
+                "\u6309\u94ae\u8bed\u97f3\u63d0\u9192",
+                isVoiceGuideEnabled(),
+                "\u70b9\u201c\u5927\u4e00\u70b9\u201d\u6216\u201c\u5c0f\u4e00\u70b9\u201d\u65f6\u8bed\u97f3\u63d0\u9192\u4e00\u4e0b\u3002",
+                isChecked -> AppSettings.prefs(this).edit()
+                        .putBoolean(AppSettings.KEY_VOICE_GUIDE, isChecked)
+                        .apply());
+
+        Button setupButton = makeSettingsButton("\u6388\u6743\u4e0e\u540e\u53f0\u8bbe\u7f6e");
+        setupButton.setOnClickListener(v -> showBackgroundSetupDialog());
+        content.addView(setupButton, matchWidthFixedHeight(50));
+        content.addView(makeHelpText("\u5982\u679c\u91cd\u542f\u540e\u4e0d\u81ea\u52a8\uff0c\u70b9\u8fd9\u91cc\u68c0\u67e5\u6743\u9650\u3002"), matchWidthWrapHeight());
+
+        Button updateButton = makeSettingsButton("\u68c0\u67e5\u66f4\u65b0");
+        updateButton.setOnClickListener(v -> checkForUpdate());
+        content.addView(updateButton, matchWidthFixedHeight(50));
+
+        Button aboutButton = makeSettingsButton("\u5173\u4e8e");
+        aboutButton.setOnClickListener(v -> showAboutDialog());
+        content.addView(aboutButton, matchWidthFixedHeight(50));
+
+        scrollView.addView(content);
+        new AlertDialog.Builder(this)
+                .setTitle("\u8bbe\u7f6e")
+                .setView(scrollView)
+                .setPositiveButton("\u5b8c\u6210", null)
+                .show();
     }
 
     private void showTutorialDialog() {
@@ -1448,8 +1471,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             return;
         }
         pauseAutoButton.setText(AppSettings.autoListenPaused(this)
-                ? "\u6062\u590d\u81ea\u52a8\u52a9\u542c"
-                : "\u6682\u505c\u81ea\u52a8\u52a9\u542c");
+                ? "\u6062\u590d"
+                : "\u6682\u505c");
     }
 
     private void autoStartIfHeadsetAlreadyConnected() {
@@ -1507,7 +1530,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void setRunningUi(boolean running) {
-        toggleButton.setText(running ? "\u505c\u6b62\u52a9\u542c" : "\u5f00\u59cb\u52a9\u542c");
+        toggleButton.setText(running ? "\u6682\u505c" : "\u5f00\u59cb");
     }
 
     private void setGainProgressForValue(float gain) {
@@ -1994,19 +2017,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         setSwitchChecked(boneConductionSwitch, AppSettings.MODE_BONE_CONDUCTION.equals(mode));
         setSwitchChecked(pocketModeSwitch, AppSettings.MODE_POCKET.equals(mode));
         if (AppSettings.autoListenPaused(this)) {
-            modeStatusText.setText("\u5df2\u6682\u505c\u81ea\u52a8\u52a9\u542c\uff1a\u666e\u901a\u8033\u673a\u6a21\u5f0f");
-        } else if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
-            modeStatusText.setText("\u81ea\u52a8\u6a21\u5f0f\uff1a\u6709\u7ebf/USB \u8033\u673a");
-        } else if (AppSettings.MODE_POCKET.equals(mode)) {
-            modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u53e3\u888b\u6a21\u5f0f");
-        } else if (AppSettings.MODE_SEVERE.equals(mode)) {
-            modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u91cd\u5ea6");
-        } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
-            modeStatusText.setText("\u5f53\u524d\u6a21\u5f0f\uff1a\u9aa8\u4f20\u5bfc\u8033\u673a");
+            modeStatusText.setText("\u5df2\u6682\u505c");
         } else if (!engine.hasBluetoothOutput() && !engine.hasWiredOutput()) {
-            modeStatusText.setText("\u81ea\u52a8\u6a21\u5f0f\uff1a\u7b49\u5f85\u8033\u673a");
+            modeStatusText.setText("\u8fde\u4e0a\u8033\u673a\u540e\u81ea\u52a8\u5f00\u59cb");
+        } else if (isListeningActive()) {
+            modeStatusText.setText("\u6b63\u5728\u52a9\u542c");
         } else {
-            modeStatusText.setText("\u81ea\u52a8\u6a21\u5f0f\uff1a\u84dd\u7259\u8033\u673a");
+            modeStatusText.setText("\u8033\u673a\u5df2\u8fde\u63a5");
         }
     }
 
