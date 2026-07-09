@@ -214,10 +214,12 @@ public final class HearingEngine {
             short[] buffer = new short[frameBuffer];
             VoiceProcessor voiceProcessor = new VoiceProcessor();
             OwnVoiceDucker ownVoiceDucker = new OwnVoiceDucker();
+            AmbientNoiseGate ambientNoiseGate = new AmbientNoiseGate();
             FeedbackGuard feedbackGuard = new FeedbackGuard();
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
             track.play();
+            track.setVolume(1.0f);
 
             while (running) {
                 int read = record.read(buffer, 0, buffer.length, AudioRecord.READ_BLOCKING);
@@ -227,7 +229,7 @@ public final class HearingEngine {
                 float level = processAndMeasure(buffer, read, gain,
                         outputLimit, voiceEnhancementEnabled, farPickupEnabled,
                         ownVoiceSuppressionEnabled, voiceProcessor, ownVoiceDucker,
-                        feedbackGuard);
+                        ambientNoiseGate, feedbackGuard);
                 if (feedbackProtectionEnabled && feedbackGuard.shouldReduceGain()
                         && gain > 2.0f) {
                     gain = Math.max(2.0f, gain * 0.86f);
@@ -267,7 +269,8 @@ public final class HearingEngine {
 
     private static float processAndMeasure(short[] buffer, int length, float gain, float outputLimit,
             boolean enhanceVoice, boolean farPickup, boolean suppressOwnVoice,
-            VoiceProcessor voiceProcessor, OwnVoiceDucker ownVoiceDucker, FeedbackGuard feedbackGuard) {
+            VoiceProcessor voiceProcessor, OwnVoiceDucker ownVoiceDucker,
+            AmbientNoiseGate ambientNoiseGate, FeedbackGuard feedbackGuard) {
         float ownVoiceMultiplier = suppressOwnVoice
                 ? ownVoiceDucker.multiplierFor(buffer, length)
                 : 1.0f;
@@ -286,6 +289,7 @@ public final class HearingEngine {
                 if (absInput < (farPickup ? 45.0f : 90.0f)) {
                     input *= 0.35f;
                 }
+                input *= ambientNoiseGate.multiplierFor(absInput, farPickup);
             }
             int sample = Math.round(input * gain * ownVoiceMultiplier);
             if (sample > Short.MAX_VALUE) {
@@ -495,6 +499,26 @@ public final class HearingEngine {
                 holdFrames--;
             }
             return holdFrames > 0 ? 0.22f : 1.0f;
+        }
+    }
+
+    private static final class AmbientNoiseGate {
+        private float floor = 120.0f;
+
+        float multiplierFor(float absInput, boolean farPickup) {
+            float learnLimit = farPickup ? 360.0f : 460.0f;
+            if (absInput < learnLimit) {
+                floor = floor * 0.995f + absInput * 0.005f;
+            }
+            float low = Math.max(farPickup ? 90.0f : 130.0f, floor * 2.2f);
+            float mid = Math.max(farPickup ? 260.0f : 340.0f, floor * 3.5f);
+            if (absInput < low) {
+                return 0.18f;
+            }
+            if (absInput < mid) {
+                return 0.65f;
+            }
+            return 1.0f;
         }
     }
 

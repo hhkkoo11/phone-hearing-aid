@@ -940,7 +940,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
         int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         float ratio = gainSeek.getProgress() / (float) Math.max(1, gainSeek.getMax());
-        int targetVolume = Math.max(1, Math.round(ratio * maxVolume));
+        int hearingMinimum = Math.max(1, Math.round(maxVolume * 0.72f));
+        int targetVolume = Math.max(hearingMinimum, Math.round(ratio * maxVolume));
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume, 0);
         lastSeenSystemVolume = targetVolume;
     }
@@ -1043,13 +1044,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
         activeAppliedMode = AppSettings.MODE_BLUETOOTH_DAILY;
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
-        engine.setOutputLimit(0.74f);
+        engine.setOutputLimit(0.82f);
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(4.0f);
+        setGainProgressForValue(5.0f);
         updateModeFeedback(AppSettings.MODE_BLUETOOTH_DAILY);
         if (announce) {
             speak("\u84dd\u7259\u6a21\u5f0f");
@@ -1068,13 +1069,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
         activeAppliedMode = AppSettings.MODE_WIRED_INDOOR;
         saveMode(AppSettings.MODE_WIRED_INDOOR);
-        engine.setOutputLimit(0.78f);
+        engine.setOutputLimit(0.84f);
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(false);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(5.0f);
+        setGainProgressForValue(6.0f);
         updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
         if (announce) {
             speak("\u6709\u7ebf\u6a21\u5f0f");
@@ -1100,13 +1101,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private void applySevereMode() {
         activeAppliedMode = AppSettings.MODE_SEVERE;
         saveMode(AppSettings.MODE_SEVERE);
-        engine.setOutputLimit(0.86f);
+        engine.setOutputLimit(0.90f);
         engine.setFeedbackProtectionEnabled(true);
         setVoiceEnhancementEnabled(true);
         setFarPickupEnabled(true);
         setNoiseSuppressionEnabled(true);
         setAutomaticGainEnabled(true);
-        setGainProgressForValue(7.0f);
+        setGainProgressForValue(8.0f);
         updateModeFeedback(AppSettings.MODE_SEVERE);
         speak("\u91cd\u5ea6\u6a21\u5f0f");
     }
