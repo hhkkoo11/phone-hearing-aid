@@ -220,6 +220,7 @@ public final class HearingEngine {
             VoiceProcessor voiceProcessor = new VoiceProcessor();
             OwnVoiceDucker ownVoiceDucker = new OwnVoiceDucker();
             AmbientNoiseGate ambientNoiseGate = new AmbientNoiseGate();
+            FrameNoiseGate frameNoiseGate = new FrameNoiseGate();
             FeedbackGuard feedbackGuard = new FeedbackGuard();
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
@@ -234,7 +235,7 @@ public final class HearingEngine {
                 float level = processAndMeasure(buffer, read, gain,
                         outputLimit, voiceEnhancementEnabled, farPickupEnabled,
                         ownVoiceSuppressionEnabled, voiceProcessor, ownVoiceDucker,
-                        ambientNoiseGate, feedbackGuard);
+                        ambientNoiseGate, frameNoiseGate, feedbackGuard);
                 if (feedbackProtectionEnabled && feedbackGuard.shouldReduceGain()
                         && gain > 2.0f) {
                     gain = Math.max(2.0f, gain * 0.86f);
@@ -275,9 +276,12 @@ public final class HearingEngine {
     private static float processAndMeasure(short[] buffer, int length, float gain, float outputLimit,
             boolean enhanceVoice, boolean farPickup, boolean suppressOwnVoice,
             VoiceProcessor voiceProcessor, OwnVoiceDucker ownVoiceDucker,
-            AmbientNoiseGate ambientNoiseGate, FeedbackGuard feedbackGuard) {
+            AmbientNoiseGate ambientNoiseGate, FrameNoiseGate frameNoiseGate, FeedbackGuard feedbackGuard) {
         float ownVoiceMultiplier = suppressOwnVoice
                 ? ownVoiceDucker.multiplierFor(buffer, length)
+                : 1.0f;
+        float frameNoiseMultiplier = enhanceVoice
+                ? frameNoiseGate.multiplierFor(buffer, length, farPickup)
                 : 1.0f;
         long sum = 0L;
         int peak = 0;
@@ -296,9 +300,10 @@ public final class HearingEngine {
                 }
                 input *= ambientNoiseGate.multiplierFor(absInput, farPickup);
             }
-            float sampleValue = input * gain * ownVoiceMultiplier;
+            float sampleValue = input * gain * ownVoiceMultiplier * frameNoiseMultiplier;
             if (enhanceVoice) {
                 sampleValue = compressAndLimit(sampleValue, limit);
+                sampleValue = voiceProcessor.deHiss(sampleValue);
             }
             int sample = Math.round(sampleValue);
             if (sample > Short.MAX_VALUE) {
@@ -492,6 +497,7 @@ public final class HearingEngine {
         private float previousOutput;
         private float previousPresenceInput;
         private float smoothedPresence;
+        private float deHissOutput;
 
         float highPass(float input) {
             float output = HIGH_PASS_ALPHA * (previousOutput + input - previousInput);
@@ -505,6 +511,11 @@ public final class HearingEngine {
             previousPresenceInput = input;
             smoothedPresence = smoothedPresence * 0.72f + edge * 0.28f;
             return input + smoothedPresence * 0.32f;
+        }
+
+        float deHiss(float sample) {
+            deHissOutput = deHissOutput * 0.34f + sample * 0.66f;
+            return deHissOutput;
         }
     }
 
@@ -547,6 +558,36 @@ public final class HearingEngine {
             }
             if (absInput < mid) {
                 return 0.42f;
+            }
+            return 1.0f;
+        }
+    }
+
+    private static final class FrameNoiseGate {
+        private float floor = 0.006f;
+
+        float multiplierFor(short[] buffer, int length, boolean farPickup) {
+            long sum = 0L;
+            int peak = 0;
+            for (int i = 0; i < length; i++) {
+                int abs = Math.abs(buffer[i]);
+                sum += abs;
+                if (abs > peak) {
+                    peak = abs;
+                }
+            }
+            float average = sum / (float) Math.max(1, length) / Short.MAX_VALUE;
+            float peakLevel = peak / (float) Short.MAX_VALUE;
+            if (average < 0.018f && peakLevel < 0.08f) {
+                floor = floor * 0.992f + average * 0.008f;
+            }
+            float quiet = Math.max(farPickup ? 0.012f : 0.016f, floor * 2.8f);
+            float speech = Math.max(farPickup ? 0.035f : 0.045f, floor * 7.0f);
+            if (average < quiet && peakLevel < speech) {
+                return 0.04f;
+            }
+            if (average < speech && peakLevel < 0.16f) {
+                return 0.28f;
             }
             return 1.0f;
         }
