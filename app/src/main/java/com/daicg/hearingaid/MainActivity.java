@@ -396,12 +396,20 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(statusText, matchWidthWrapHeight());
 
         TextView versionText = new TextView(this);
-        versionText.setText("\u7248\u672c 4.7\uff1a\u5b8c\u6574\u6237\u5916\u8c03\u8bd5\u91c7\u96c6");
+        versionText.setText("\u7248\u672c 4.8\uff1a\u660e\u786e\u652f\u6301\u79bb\u7ebf\u4f7f\u7528");
         versionText.setTextSize(13);
         versionText.setTextColor(0xFF5A6B66);
         versionText.setGravity(Gravity.CENTER);
         versionText.setPadding(0, 0, 0, dp(8));
         root.addView(versionText, matchWidthWrapHeight());
+
+        TextView offlineText = new TextView(this);
+        offlineText.setText("\u79bb\u7ebf\u53ef\u7528\uff1a\u6ca1\u6709\u7f51\u7edc\u4e5f\u80fd\u52a9\u542c\u548c\u91c7\u96c6\u6d4b\u8bd5\u6570\u636e");
+        offlineText.setTextSize(14);
+        offlineText.setTextColor(0xFF315048);
+        offlineText.setGravity(Gravity.CENTER);
+        offlineText.setPadding(0, 0, 0, dp(8));
+        root.addView(offlineText, matchWidthWrapHeight());
 
         modeStatusText = new TextView(this);
         modeStatusText.setTextSize(17);
@@ -588,7 +596,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 "\u4e00\u3001\u6700\u7b80\u5355\u7684\u7528\u6cd5\n"
                         + "1. \u5148\u8fde\u4e0a\u8033\u673a\u3002\u84dd\u7259\u548c\u6709\u7ebf\u90fd\u53ef\u4ee5\uff0cApp \u4f1a\u81ea\u52a8\u8bc6\u522b\u3002\n"
                         + "2. \u70b9\u201c\u5f00\u59cb\u52a9\u542c\u201d\u3002\n"
-                        + "3. \u542c\u4e0d\u6e05\u5c31\u6309 +\uff0c\u89c9\u5f97\u523a\u8033\u5c31\u6309 -\u3002\n\n"
+                        + "3. \u542c\u4e0d\u6e05\u5c31\u6309 +\uff0c\u89c9\u5f97\u523a\u8033\u5c31\u6309 -\u3002\n"
+                        + "4. \u6ca1\u6709\u7f51\u7edc\u4e5f\u80fd\u7528\uff1a\u52a9\u542c\u3001\u6536\u97f3\u6765\u6e90\u5207\u6362\u3001\u6237\u5916\u6d4b\u8bd5\u6570\u636e\u91c7\u96c6\u90fd\u662f\u672c\u5730\u529f\u80fd\u3002\u53ea\u6709\u201c\u68c0\u67e5\u66f4\u65b0\u201d\u9700\u8981\u7f51\u7edc\u3002\n\n"
                         + "\u4e8c\u3001\u81ea\u52a8\u589e\u76ca\u662f\u4ec0\u4e48\n"
                         + "\u5b83\u5c31\u50cf\u201c\u81ea\u52a8\u8ffd\u97f3\u91cf\u201d\u3002\u522b\u4eba\u8bf4\u8bdd\u5c0f\uff0c\u5b83\u4f1a\u5e2e\u4f60\u62ac\u9ad8\uff1b\u58f0\u97f3\u592a\u5927\uff0c\u5b83\u4f1a\u5c3d\u91cf\u538b\u4f4f\u3002\n"
                         + "\u6700\u76f4\u89c2\u7684\u6548\u679c\uff1a\u5c0f\u58f0\u66f4\u5bb9\u6613\u542c\u89c1\u3002\n"
@@ -886,7 +895,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         Button updateButton = makeSettingsButton("\u68c0\u67e5\u66f4\u65b0");
         updateButton.setOnClickListener(v -> checkForUpdate());
         content.addView(updateButton, matchWidthFixedHeight(48));
-        content.addView(makeHelpText("\u6709\u65b0\u7248\u672c\u65f6\u4f1a\u5148\u4e0b\u8f7d\uff0c\u518d\u8df3\u5230\u7cfb\u7edf\u5b89\u88c5\u9875\u3002"), matchWidthWrapHeight());
+        content.addView(makeHelpText("\u6709\u65b0\u7248\u672c\u65f6\u4f1a\u5148\u4e0b\u8f7d\uff0c\u518d\u8df3\u5230\u7cfb\u7edf\u5b89\u88c5\u9875\u3002\u4e0d\u68c0\u67e5\u66f4\u65b0\u4e5f\u4e0d\u5f71\u54cd\u79bb\u7ebf\u52a9\u542c\u3002"), matchWidthWrapHeight());
 
         scrollView.addView(content);
         new AlertDialog.Builder(this)
