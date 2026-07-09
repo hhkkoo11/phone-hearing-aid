@@ -36,7 +36,7 @@ final class AppSettings {
     static final String KEY_NOISE_SUPPRESSION = "noise_suppression";
     static final String KEY_AI_NOISE_SUPPRESSION = "ai_noise_suppression";
     static final String KEY_AUTOMATIC_GAIN = "automatic_gain";
-    static final float DEFAULT_GAIN = 14.0f;
+    static final float DEFAULT_GAIN = 36.0f;
 
     static final String MODE_BLUETOOTH_DAILY = "bluetooth_daily";
     static final String MODE_WIRED_INDOOR = "wired_indoor";
@@ -150,7 +150,7 @@ final class AppSettings {
     }
 
     static boolean voiceEnhancementEnabled(Context context) {
-        return prefs(context).getBoolean(KEY_VOICE_ENHANCEMENT, true);
+        return prefs(context).getBoolean(KEY_VOICE_ENHANCEMENT, false);
     }
 
     static boolean farPickupEnabled(Context context) {
@@ -166,11 +166,11 @@ final class AppSettings {
     }
 
     static boolean noiseSuppressionEnabled(Context context) {
-        return prefs(context).getBoolean(KEY_NOISE_SUPPRESSION, true);
+        return prefs(context).getBoolean(KEY_NOISE_SUPPRESSION, false);
     }
 
     static boolean aiNoiseSuppressionEnabled(Context context) {
-        return prefs(context).getBoolean(KEY_AI_NOISE_SUPPRESSION, true);
+        return prefs(context).getBoolean(KEY_AI_NOISE_SUPPRESSION, false);
     }
 
     static boolean automaticGainEnabled(Context context) {

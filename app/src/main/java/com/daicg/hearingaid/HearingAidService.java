@@ -240,12 +240,14 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setGain(savedGain);
             engine.setOutputLimit(0.90f);
             engine.setBoneConductionNoiseControlEnabled(false);
-            engine.setVoiceEnhancementEnabled(voiceEnhancement);
+            engine.setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
+            engine.setVoiceEnhancementEnabled(false);
             engine.setFarPickupEnabled(farPickup);
             engine.setLongRangePickupEnabled(longRangePickup);
             engine.setEchoCancellationEnabled(echoCancellation);
             engine.setSelfVoiceReductionEnabled(selfVoiceReduction);
-            engine.setNoiseSuppressionEnabled(noiseSuppression);
+            engine.setNoiseSuppressionEnabled(false);
+            engine.setAiNoiseSuppressionEnabled(false);
             engine.setAutomaticGainEnabled(automaticGain);
         }
         engine.setFeedbackProtectionEnabled(true);
