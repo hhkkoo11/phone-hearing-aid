@@ -1,7 +1,7 @@
 {
-  "versionCode": 6,
-  "versionName": "classic-1.5",
+  "versionCode": 7,
+  "versionName": "classic-1.6",
   "packageName": "com.daicg.hearingaid.classic",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/main/release/hearing-aid-classic.apk",
-  "notes": "经典增强版：修正 1.4 人声增强过头导致的电流感，把高频边缘增强和远距离人声放大调回温和，并把极限低延迟缓冲改成稳定低延迟。"
+  "notes": "经典增强版：针对骨传导/蓝牙测试中的强电流声，把高频边缘增强大幅收回，保留接近初代的干净收音和轻微人声托底。"
 }
