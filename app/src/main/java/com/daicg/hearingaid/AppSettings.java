@@ -125,7 +125,7 @@ final class AppSettings {
     }
 
     static String sceneMode(Context context) {
-        return prefs(context).getString(KEY_SCENE_MODE, MODE_BLUETOOTH_DAILY);
+        return prefs(context).getString(KEY_SCENE_MODE, MODE_WIRED_INDOOR);
     }
 
     static boolean selfVoiceProfileEnabled(Context context) {

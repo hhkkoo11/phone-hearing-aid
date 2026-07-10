@@ -29,7 +29,8 @@ public final class HearingEngine {
     }
 
     private static final int CHANNEL_IN = AudioFormat.CHANNEL_IN_MONO;
-    private static final int CHANNEL_OUT = AudioFormat.CHANNEL_OUT_MONO;
+    private static final int CHANNEL_OUT_MONO = AudioFormat.CHANNEL_OUT_MONO;
+    private static final int CHANNEL_OUT_STEREO = AudioFormat.CHANNEL_OUT_STEREO;
     private static final int ENCODING = AudioFormat.ENCODING_PCM_16BIT;
     private static final int WIRED_SAMPLE_RATE = 48000;
     private static final int BLUETOOTH_SAMPLE_RATE = 44100;
@@ -185,9 +186,11 @@ public final class HearingEngine {
         boolean aiNoiseEnabled = false;
         int sampleRate = bluetoothRoute ? BLUETOOTH_SAMPLE_RATE : WIRED_SAMPLE_RATE;
         int frameBuffer = bluetoothRoute ? BLUETOOTH_FRAME_BUFFER : WIRED_FRAME_BUFFER;
+        int outputChannelMask = bluetoothRoute ? CHANNEL_OUT_STEREO : CHANNEL_OUT_MONO;
+        int outputChannelCount = bluetoothRoute ? 2 : 1;
 
         int minIn = AudioRecord.getMinBufferSize(sampleRate, CHANNEL_IN, ENCODING);
-        int minOut = AudioTrack.getMinBufferSize(sampleRate, CHANNEL_OUT, ENCODING);
+        int minOut = AudioTrack.getMinBufferSize(sampleRate, outputChannelMask, ENCODING);
         if (minIn <= 0 || minOut <= 0) {
             postError("\u5f53\u524d\u8bbe\u5907\u4e0d\u652f\u6301\u5b9e\u65f6\u97f3\u9891");
             running = false;
@@ -195,7 +198,7 @@ public final class HearingEngine {
         }
 
         int recordBuffer = Math.max(minIn, frameBuffer * 3);
-        int trackBuffer = Math.max(minOut, frameBuffer * 3);
+        int trackBuffer = Math.max(minOut, frameBuffer * outputChannelCount * 2 * 3);
 
         AudioRecord record = null;
         AudioTrack track = null;
@@ -226,7 +229,7 @@ public final class HearingEngine {
                     .setAudioFormat(new AudioFormat.Builder()
                             .setSampleRate(sampleRate)
                             .setEncoding(ENCODING)
-                            .setChannelMask(CHANNEL_OUT)
+                            .setChannelMask(outputChannelMask)
                             .build())
                     .setBufferSizeInBytes(trackBuffer)
                     .setTransferMode(AudioTrack.MODE_STREAM)
@@ -274,6 +277,7 @@ public final class HearingEngine {
             }
 
             short[] buffer = new short[frameBuffer];
+            short[] stereoBuffer = bluetoothRoute ? new short[frameBuffer * 2] : null;
             VoiceProcessor voiceProcessor = new VoiceProcessor(
                     sampleRate,
                     farPickupEnabled,
@@ -316,7 +320,16 @@ public final class HearingEngine {
                     TestDataLogger.appendFrameStats(context, buffer, read, sampleRate);
                 }
                 listener.onLevel(level);
-                track.write(buffer, 0, read, AudioTrack.WRITE_BLOCKING);
+                if (stereoBuffer != null) {
+                    for (int i = 0, j = 0; i < read; i++) {
+                        short sample = buffer[i];
+                        stereoBuffer[j++] = sample;
+                        stereoBuffer[j++] = sample;
+                    }
+                    track.write(stereoBuffer, 0, read * 2, AudioTrack.WRITE_BLOCKING);
+                } else {
+                    track.write(buffer, 0, read, AudioTrack.WRITE_BLOCKING);
+                }
             }
         } catch (Exception e) {
             postError(e.getMessage() == null
@@ -461,7 +474,7 @@ public final class HearingEngine {
     private static AudioAttributes buildOutputAttributes() {
         AudioAttributes.Builder builder = new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_MEDIA)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH);
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC);
         if (Build.VERSION.SDK_INT >= 32) {
             builder.setSpatializationBehavior(AudioAttributes.SPATIALIZATION_BEHAVIOR_NEVER);
         }

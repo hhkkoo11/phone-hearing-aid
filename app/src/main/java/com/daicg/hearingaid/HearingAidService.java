@@ -131,6 +131,13 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
+        if (!AppSettings.autoListenPaused(this)) {
+            HeadsetMonitorService.start(this);
+            if (engine != null && !engine.isRunning()) {
+                applySavedMode();
+                engine.start();
+            }
+        }
         super.onTaskRemoved(rootIntent);
     }
 

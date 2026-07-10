@@ -100,6 +100,14 @@ public final class HeadsetMonitorService extends Service {
     }
 
     @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        if (AppSettings.autoMonitorEnabled(this) && !AppSettings.autoListenPaused(this)) {
+            start(this);
+        }
+        super.onTaskRemoved(rootIntent);
+    }
+
+    @Override
     public IBinder onBind(Intent intent) {
         return null;
     }

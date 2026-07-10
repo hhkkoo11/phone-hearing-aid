@@ -40,6 +40,7 @@ import android.speech.tts.Voice;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -495,6 +496,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         styleButton(pauseAutoButton, 0xFFD7E1DE, 0xFF10231F, dp(22));
         pauseAutoButton.setOnClickListener(v ->
                 setAutoListenPaused(!AppSettings.autoListenPaused(this), true));
+        pauseAutoButton.setVisibility(View.GONE);
         root.addView(pauseAutoButton, matchWidthFixedHeight(56));
 
         soundStatusText = new TextView(this);
@@ -1483,6 +1485,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             toast("\u6b63\u5728\u901a\u8bdd\u4e2d\uff0c\u5df2\u653e\u5927\u7535\u8bdd\u58f0\u97f3\uff0c\u6682\u4e0d\u5f00\u542f\u666e\u901a\u52a9\u542c\u6536\u97f3");
             return;
         }
+        AppSettings.prefs(this).edit()
+                .putBoolean(AppSettings.KEY_AUTO_LISTEN_PAUSED, false)
+                .apply();
         updateRouteStatus();
         applyAutoRouteMode(false);
         setSystemMusicVolumeMax();
