@@ -251,7 +251,8 @@ public final class HearingEngine {
             }
 
             if (loudnessBoostEnabled) {
-                loudnessEnhancer = createLoudnessEnhancer(track.getAudioSessionId(), gain);
+                loudnessEnhancer = createLoudnessEnhancer(track.getAudioSessionId(), gain,
+                        boneConductionNoiseControlEnabled);
             }
 
             int sessionId = record.getAudioSessionId();
@@ -302,7 +303,8 @@ public final class HearingEngine {
                 }
                 float level = processAndMeasure(buffer, read, gain,
                         outputLimit, voiceEnhancementEnabled, farPickupEnabled, longRangePickupEnabled,
-                        selfVoiceReductionEnabled, loudnessBoostEnabled, voiceProcessor, feedbackGuard);
+                        selfVoiceReductionEnabled, loudnessBoostEnabled, boneConductionNoiseControlEnabled,
+                        voiceProcessor, feedbackGuard);
                 if (feedbackProtectionEnabled && feedbackGuard.shouldReduceGain()
                         && gain > 2.0f) {
                     gain = Math.max(2.0f, gain * 0.86f);
@@ -348,7 +350,8 @@ public final class HearingEngine {
 
     private static float processAndMeasure(short[] buffer, int length, float gain, float outputLimit,
             boolean enhanceVoice, boolean farPickup, boolean longRangePickup, boolean reduceSelfVoice,
-            boolean loudnessBoost, VoiceProcessor voiceProcessor, FeedbackGuard feedbackGuard) {
+            boolean loudnessBoost, boolean boneConduction,
+            VoiceProcessor voiceProcessor, FeedbackGuard feedbackGuard) {
         long sum = 0L;
         int peak = 0;
         int limit = Math.round(Short.MAX_VALUE * outputLimit);
@@ -378,7 +381,9 @@ public final class HearingEngine {
                 }
             }
             if (loudnessBoost) {
-                input = protectCloseLoudSound(input, farPickup || longRangePickup);
+                if (!boneConduction) {
+                    input = protectCloseLoudSound(input, farPickup || longRangePickup);
+                }
             }
             int sample = Math.round(input * gain);
             if (loudnessBoost || Math.abs(sample) > limit) {
@@ -454,10 +459,15 @@ public final class HearingEngine {
         return sign * abs;
     }
 
-    private static LoudnessEnhancer createLoudnessEnhancer(int audioSessionId, float gain) {
+    private static LoudnessEnhancer createLoudnessEnhancer(int audioSessionId, float gain, boolean boneConduction) {
         try {
             LoudnessEnhancer enhancer = new LoudnessEnhancer(audioSessionId);
-            int targetGainMb = gain >= 58.0f ? 900 : (gain >= 42.0f ? 700 : 450);
+            int targetGainMb;
+            if (boneConduction) {
+                targetGainMb = gain >= 100.0f ? 1700 : (gain >= 80.0f ? 1450 : 1150);
+            } else {
+                targetGainMb = gain >= 58.0f ? 900 : (gain >= 42.0f ? 700 : 450);
+            }
             enhancer.setTargetGain(targetGainMb);
             enhancer.setEnabled(true);
             return enhancer;
@@ -946,21 +956,26 @@ public final class HearingEngine {
 
     private static final class FeedbackGuard {
         private int hotFrames;
+        private int reduceCooldownFrames;
 
         void observe(float averageLevel, float peakLevel) {
-            if (peakLevel > 0.82f && averageLevel > 0.32f) {
+            if (reduceCooldownFrames > 0) {
+                reduceCooldownFrames--;
+            }
+            if (peakLevel > 0.92f && averageLevel > 0.48f) {
                 hotFrames++;
             } else if (hotFrames > 0) {
-                hotFrames--;
+                hotFrames = Math.max(0, hotFrames - 2);
             }
         }
 
         boolean shouldReduceGain() {
-            return hotFrames > 36;
+            return reduceCooldownFrames <= 0 && hotFrames > 96;
         }
 
         void reset() {
             hotFrames = 0;
+            reduceCooldownFrames = 1800;
         }
     }
 

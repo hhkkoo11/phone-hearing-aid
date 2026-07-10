@@ -68,6 +68,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private static final int REQUEST_SETUP_PERMISSIONS = 1002;
     private static final float[] NORMAL_STEP_GAINS = {32.0f, 48.0f, 64.0f};
     private static final float[] EXTRA_LOUD_STEP_GAINS = {42.0f, 64.0f, 82.0f};
+    private static final float[] BONE_STEP_GAINS = {58.0f, 88.0f, 110.0f};
     private static final String[] STEP_LABELS = {"\u5c0f\u58f0", "\u5408\u9002", "\u5927\u58f0"};
     private static final String OFFICIAL_REPOSITORY_URL =
             "https://github.com/hhkkoo11/phone-hearing-aid";
@@ -128,6 +129,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private String lastSpokenText = "";
     private long lastSpokenAtMillis;
     private boolean suppressServiceRefresh;
+    private long lastFeedbackToastAt;
 
     private final Runnable volumeSyncPoller = new Runnable() {
         @Override
@@ -320,7 +322,11 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         runOnUiThread(() -> {
             setGainProgressForValue(gain);
             restartListeningServiceIfActive();
-            toast("\u68c0\u6d4b\u5230\u5578\u53eb\u98ce\u9669\uff0c\u5df2\u81ea\u52a8\u964d\u4f4e\u589e\u76ca");
+            long now = System.currentTimeMillis();
+            if (now - lastFeedbackToastAt > 30L * 1000L) {
+                lastFeedbackToastAt = now;
+                toast("\u68c0\u6d4b\u5230\u5578\u53eb\u98ce\u9669\uff0c\u5df2\u81ea\u52a8\u964d\u4f4e\u589e\u76ca");
+            }
         });
     }
 
@@ -551,6 +557,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private float gainForStep(int step) {
+        if (AppSettings.MODE_BONE_CONDUCTION.equals(AppSettings.sceneMode(this))) {
+            return BONE_STEP_GAINS[Math.max(0, Math.min(step, BONE_STEP_GAINS.length - 1))];
+        }
         float[] gains = AppSettings.extraLoudModeEnabled(this)
                 ? EXTRA_LOUD_STEP_GAINS
                 : NORMAL_STEP_GAINS;
@@ -1474,6 +1483,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         }
         updateRouteStatus();
         applyAutoRouteMode(false);
+        setSystemMusicVolumeMax();
         engine.stop();
         HearingAidService.start(this);
         setRunningUi(true);
@@ -2034,19 +2044,19 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         suppressServiceRefresh = true;
         activeAppliedMode = AppSettings.MODE_BONE_CONDUCTION;
         saveMode(AppSettings.MODE_BONE_CONDUCTION);
-        engine.setOutputLimit(0.90f);
+        engine.setOutputLimit(0.96f);
         engine.setFeedbackProtectionEnabled(true);
         setBoneNoiseControlEnabled(true);
         setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
-        setVoiceEnhancementEnabled(true);
+        setVoiceEnhancementEnabled(false);
         setFarPickupEnabled(false);
         setLongRangePickupEnabled(false);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
-        setNoiseSuppressionEnabled(true);
-        setAiNoiseSuppressionEnabled(true);
+        setNoiseSuppressionEnabled(false);
+        setAiNoiseSuppressionEnabled(false);
         setAutomaticGainEnabled(false);
-        setGainProgressForValue(AppSettings.gain(this));
+        setVolumeStep(AppSettings.volumeStep(this), true);
         setSystemMusicVolumeMax();
         suppressServiceRefresh = false;
         refreshListeningServiceIfActive();
@@ -2080,6 +2090,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private void applyAutoRouteMode(boolean announce) {
         if (engine.hasWiredOutput()) {
             applyWiredIndoorMode(announce);
+        } else if (AppSettings.MODE_BONE_CONDUCTION.equals(AppSettings.sceneMode(this))
+                && engine.hasBluetoothOutput()) {
+            applyBoneConductionMode();
         } else if (engine.hasBluetoothOutput()) {
             applyBluetoothDailyMode(announce);
         } else {

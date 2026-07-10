@@ -21,6 +21,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
     private PowerManager.WakeLock wakeLock;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private long lastLevelBroadcastAt;
+    private long lastFeedbackToastAt;
     private boolean screenReceiverRegistered;
 
     private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
@@ -158,9 +159,13 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     @Override
     public void onGainReduced(float gain) {
-        mainHandler.post(() -> Toast.makeText(this,
-                "\u68c0\u6d4b\u5230\u5578\u53eb\u98ce\u9669\uff0c\u5df2\u81ea\u52a8\u964d\u4f4e\u589e\u76ca",
-                Toast.LENGTH_SHORT).show());
+        long now = System.currentTimeMillis();
+        if (now - lastFeedbackToastAt > 30L * 1000L) {
+            lastFeedbackToastAt = now;
+            mainHandler.post(() -> Toast.makeText(this,
+                    "\u68c0\u6d4b\u5230\u5578\u53eb\u98ce\u9669\uff0c\u5df2\u81ea\u52a8\u964d\u4f4e\u589e\u76ca",
+                    Toast.LENGTH_SHORT).show());
+        }
     }
 
     @Override
@@ -192,6 +197,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         engine.setInputSourceMode(AppSettings.inputSourceMode(this));
         engine.setAiNoiseSuppressionEnabled(aiNoiseSuppression);
         engine.setLoudnessBoostEnabled(AppSettings.moderateLoudnessBoostEnabled(this));
+        setSystemMusicVolumeMax();
         if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
             engine.setGain(Math.max(savedGain, AppSettings.DEFAULT_GAIN));
             engine.setOutputLimit(0.92f);
@@ -228,16 +234,18 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setNoiseSuppressionEnabled(noiseSuppression);
             engine.setAutomaticGainEnabled(automaticGain);
         } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
-            engine.setGain(savedGain);
-            engine.setOutputLimit(0.94f);
+            engine.setGain(Math.max(savedGain, 88.0f));
+            engine.setOutputLimit(0.96f);
             engine.setBoneConductionNoiseControlEnabled(true);
             engine.setVoiceEnhancementEnabled(voiceEnhancement);
             engine.setFarPickupEnabled(farPickup);
             engine.setLongRangePickupEnabled(longRangePickup);
             engine.setEchoCancellationEnabled(echoCancellation);
             engine.setSelfVoiceReductionEnabled(selfVoiceReduction);
-            engine.setNoiseSuppressionEnabled(noiseSuppression);
-            engine.setAutomaticGainEnabled(automaticGain);
+            engine.setNoiseSuppressionEnabled(false);
+            engine.setAiNoiseSuppressionEnabled(false);
+            engine.setVoiceEnhancementEnabled(false);
+            engine.setAutomaticGainEnabled(false);
             setSystemMusicVolumeMax();
         } else {
             engine.setGain(savedGain);
