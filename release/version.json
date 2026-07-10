@@ -1,7 +1,7 @@
-﻿{
-  "versionCode": 66,
-  "versionName": "classic-stable-1.0",
-  "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/classic-stable/release/hearing-aid-classic-stable.apk",
+{
+  "versionCode": 71,
+  "versionName": "wired-stable-1.4",
+  "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/wired-stable/release/hearing-aid-wired-stable.apk",
   "forceUpdate": false,
-  "notes": "经典稳定版：保留新版大按钮 UI 和自动耳机监测，音频链路回到早期直通放大风格，减少 AI、强降噪和过度锐化，优先追求自然、连续、少电流声。不强制更新。"
+  "notes": "有线耳机稳定版 1.4：当前公开主线只推有线耳机稳定版，蓝牙和骨传导保留为备用。不强制更新。"
 }
