@@ -189,10 +189,17 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         }
         String mode = AppSettings.sceneMode(this);
         float savedGain = AppSettings.gain(this);
+        if (savedGain > 12.0f) {
+            savedGain = AppSettings.DEFAULT_GAIN;
+            AppSettings.prefs(this).edit()
+                    .putFloat(AppSettings.KEY_GAIN, savedGain)
+                    .putInt(AppSettings.KEY_VOLUME_STEP, 1)
+                    .apply();
+        }
         applySelfVoiceProfile();
         boolean profileEnabled = AppSettings.selfVoiceProfileEnabled(this)
                 && AppSettings.hasSelfVoiceProfile(this);
-        boolean voiceEnhancement = AppSettings.voiceEnhancementEnabled(this);
+        boolean voiceEnhancement = true;
         boolean farPickup = AppSettings.farPickupEnabled(this);
         boolean longRangePickup = AppSettings.longRangePickupEnabled(this);
         boolean echoCancellation = AppSettings.echoCancellationEnabled(this);
@@ -241,7 +248,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setNoiseSuppressionEnabled(noiseSuppression);
             engine.setAutomaticGainEnabled(automaticGain);
         } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
-            engine.setGain(Math.max(savedGain, 88.0f));
+            engine.setGain(Math.max(savedGain, 7.0f));
             engine.setOutputLimit(0.96f);
             engine.setBoneConductionNoiseControlEnabled(true);
             engine.setVoiceEnhancementEnabled(voiceEnhancement);

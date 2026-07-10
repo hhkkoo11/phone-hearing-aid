@@ -1,7 +1,7 @@
 ﻿{
-  "versionCode": 64,
-  "versionName": "5.23",
-  "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/main/release/hearing-aid-app.apk",
+  "versionCode": 66,
+  "versionName": "classic-stable-1.0",
+  "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/classic-stable/release/hearing-aid-classic-stable.apk",
   "forceUpdate": false,
-  "notes": "加入训练好的 RNNoise AI 人声降噪模型：优先压低风声、电流感和环境杂音，再进入原有放大与人声增强。设置里新增 AI 人声降噪开关，默认开启；如果某台手机 native 模型不可用，会自动退回原来的系统降噪，不强制更新。"
+  "notes": "经典稳定版：保留新版大按钮 UI 和自动耳机监测，音频链路回到早期直通放大风格，减少 AI、强降噪和过度锐化，优先追求自然、连续、少电流声。不强制更新。"
 }

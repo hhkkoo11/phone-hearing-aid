@@ -66,9 +66,9 @@ import java.util.Set;
 public final class MainActivity extends Activity implements HearingEngine.Listener {
     private static final int REQUEST_AUDIO_PERMISSIONS = 1001;
     private static final int REQUEST_SETUP_PERMISSIONS = 1002;
-    private static final float[] NORMAL_STEP_GAINS = {48.0f, 64.0f, 82.0f};
-    private static final float[] EXTRA_LOUD_STEP_GAINS = {64.0f, 88.0f, 110.0f};
-    private static final float[] BONE_STEP_GAINS = {58.0f, 88.0f, 110.0f};
+    private static final float[] NORMAL_STEP_GAINS = {3.0f, 5.0f, 8.0f};
+    private static final float[] EXTRA_LOUD_STEP_GAINS = {5.0f, 7.0f, 10.0f};
+    private static final float[] BONE_STEP_GAINS = {5.0f, 7.0f, 10.0f};
     private static final String[] STEP_LABELS = {"\u5c0f\u58f0", "\u5408\u9002", "\u5927\u58f0"};
     private static final String OFFICIAL_REPOSITORY_URL =
             "https://github.com/hhkkoo11/phone-hearing-aid";
@@ -446,7 +446,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(gainText, matchWidthWrapHeight());
 
         gainSeek = new SeekBar(this);
-        gainSeek.setMax(1198);
+        gainSeek.setMax(238);
         gainSeek.setProgress(Math.round((AppSettings.gain(this) - 0.2f) * 10.0f));
         gainSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override

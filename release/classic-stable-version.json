@@ -1,0 +1,8 @@
+{
+  "versionCode": 66,
+  "versionName": "classic-stable-1.0",
+  "packageName": "com.daicg.hearingaid",
+  "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/classic-stable/release/hearing-aid-classic-stable.apk",
+  "forceUpdate": false,
+  "notes": "经典稳定版：新版大按钮 UI，经典直通放大音频链路，减少 AI、强降噪、过度锐化和极端高增益。适合作为声音自然、连续、少电流声的回退版本。"
+}

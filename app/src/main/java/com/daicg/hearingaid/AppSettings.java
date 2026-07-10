@@ -39,7 +39,7 @@ final class AppSettings {
     static final String KEY_NOISE_SUPPRESSION = "noise_suppression";
     static final String KEY_AI_NOISE_SUPPRESSION = "ai_noise_suppression";
     static final String KEY_AUTOMATIC_GAIN = "automatic_gain";
-    static final float DEFAULT_GAIN = 64.0f;
+    static final float DEFAULT_GAIN = 5.0f;
 
     static final String MODE_BLUETOOTH_DAILY = "bluetooth_daily";
     static final String MODE_WIRED_INDOOR = "wired_indoor";
@@ -149,7 +149,7 @@ final class AppSettings {
     static float gain(Context context) {
         return Math.max(0.2f, Math.min(
                 prefs(context).getFloat(KEY_GAIN, DEFAULT_GAIN),
-                120.0f));
+                24.0f));
     }
 
     static int volumeStep(Context context) {
@@ -165,7 +165,7 @@ final class AppSettings {
     }
 
     static boolean voiceEnhancementEnabled(Context context) {
-        return prefs(context).getBoolean(KEY_VOICE_ENHANCEMENT, false);
+        return prefs(context).getBoolean(KEY_VOICE_ENHANCEMENT, true);
     }
 
     static boolean farPickupEnabled(Context context) {
