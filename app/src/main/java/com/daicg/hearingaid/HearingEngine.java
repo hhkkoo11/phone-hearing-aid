@@ -372,11 +372,15 @@ public final class HearingEngine {
         for (int i = 0; i < length; i++) {
             float input = buffer[i];
             if (enhanceVoice) {
+                if (voiceProcessor != null) {
+                    input = voiceProcessor.highPass(input);
+                    input *= voiceProcessor.environmentGate(Math.abs(input), false);
+                }
                 float absInput = Math.abs(input);
-                if (absInput < (farPickup ? 60.0f : 100.0f)) {
-                    input *= farPickup ? 0.35f : 0.20f;
+                if (absInput < (farPickup ? 70.0f : 110.0f)) {
+                    input *= farPickup ? 0.26f : 0.16f;
                 } else if (farPickup && absInput < 760.0f) {
-                    float t = (absInput - 60.0f) / 700.0f;
+                    float t = (absInput - 70.0f) / 690.0f;
                     float boost = 1.28f - Math.max(0.0f, Math.min(1.0f, t)) * 0.18f;
                     input *= boost;
                 }
@@ -667,7 +671,7 @@ public final class HearingEngine {
     }
 
     private static final class VoiceProcessor {
-        private static final float HIGH_PASS_ALPHA = 0.97f;
+        private static final float HIGH_PASS_ALPHA = 0.985f;
 
         private float previousInput;
         private float previousOutput;
