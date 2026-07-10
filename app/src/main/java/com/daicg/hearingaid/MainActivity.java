@@ -267,7 +267,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     protected void onResume() {
         super.onResume();
         visible = true;
-        setRunningUi(isListeningActive());
+        setRunningUi(!AppSettings.autoListenPaused(this) && isListeningActive());
         mainHandler.post(volumeSyncPoller);
         if (pendingInstallUri != null && canInstallUnknownApps()) {
             Uri uri = pendingInstallUri;
@@ -426,7 +426,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         toggleButton.setAllCaps(false);
         styleButton(toggleButton, 0xFF2E6F63, 0xFFFFFFFF, dp(24));
         toggleButton.setOnClickListener(v -> {
-            if (isListeningActive()) {
+            if (!AppSettings.autoListenPaused(this)
+                    && isListeningActive()
+                    && "\u6682\u505c".contentEquals(toggleButton.getText())) {
                 engine.stop();
                 setAutoListenPaused(true, false);
                 setRunningUi(false);
@@ -1542,6 +1544,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         pauseAutoButton.setText(AppSettings.autoListenPaused(this)
                 ? "\u6062\u590d"
                 : "\u6682\u505c");
+        setRunningUi(!AppSettings.autoListenPaused(this) && isListeningActive());
     }
 
     private void autoStartIfHeadsetAlreadyConnected() {

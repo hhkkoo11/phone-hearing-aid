@@ -203,8 +203,14 @@ public final class HearingEngine {
         NoiseSuppressor noiseSuppressor = null;
         AutomaticGainControl automaticGain = null;
         AiNoiseSuppressor aiNoiseSuppressor = null;
+        boolean audioFocusGranted = false;
 
         try {
+            audioFocusGranted = audioManager.requestAudioFocus(
+                    null,
+                    AudioManager.STREAM_MUSIC,
+                    AudioManager.AUDIOFOCUS_GAIN) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+
             record = new AudioRecord.Builder()
                     .setAudioSource(selectAudioSource())
                     .setAudioFormat(new AudioFormat.Builder()
@@ -317,6 +323,9 @@ public final class HearingEngine {
                     ? "\u5b9e\u65f6\u76d1\u542c\u542f\u52a8\u5931\u8d25"
                     : e.getMessage());
         } finally {
+            if (audioFocusGranted) {
+                audioManager.abandonAudioFocus(null);
+            }
             if (aiNoiseSuppressor != null) {
                 aiNoiseSuppressor.close();
             }
