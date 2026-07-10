@@ -66,8 +66,8 @@ import java.util.Set;
 public final class MainActivity extends Activity implements HearingEngine.Listener {
     private static final int REQUEST_AUDIO_PERMISSIONS = 1001;
     private static final int REQUEST_SETUP_PERMISSIONS = 1002;
-    private static final float[] NORMAL_STEP_GAINS = {32.0f, 48.0f, 64.0f};
-    private static final float[] EXTRA_LOUD_STEP_GAINS = {42.0f, 64.0f, 82.0f};
+    private static final float[] NORMAL_STEP_GAINS = {48.0f, 64.0f, 82.0f};
+    private static final float[] EXTRA_LOUD_STEP_GAINS = {64.0f, 88.0f, 110.0f};
     private static final float[] BONE_STEP_GAINS = {58.0f, 88.0f, 110.0f};
     private static final String[] STEP_LABELS = {"\u5c0f\u58f0", "\u5408\u9002", "\u5927\u58f0"};
     private static final String OFFICIAL_REPOSITORY_URL =
