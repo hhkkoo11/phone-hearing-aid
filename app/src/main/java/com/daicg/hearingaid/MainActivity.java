@@ -37,6 +37,7 @@ import android.os.PowerManager;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.Voice;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.WindowManager;
@@ -65,6 +66,9 @@ import java.util.Set;
 public final class MainActivity extends Activity implements HearingEngine.Listener {
     private static final int REQUEST_AUDIO_PERMISSIONS = 1001;
     private static final int REQUEST_SETUP_PERMISSIONS = 1002;
+    private static final float[] NORMAL_STEP_GAINS = {28.0f, 42.0f, 58.0f};
+    private static final float[] EXTRA_LOUD_STEP_GAINS = {38.0f, 58.0f, 76.0f};
+    private static final String[] STEP_LABELS = {"\u5c0f\u58f0", "\u5408\u9002", "\u5927\u58f0"};
     private static final String OFFICIAL_REPOSITORY_URL =
             "https://github.com/hhkkoo11/phone-hearing-aid";
     private static final String[] UPDATE_JSON_URLS = {
@@ -350,13 +354,13 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
             if (event.getAction() == KeyEvent.ACTION_DOWN
                     && event.getRepeatCount() == 0
                     && event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP) {
-                adjustGainBy(1.0f);
+                adjustVolumeStepBy(1);
                 return true;
             }
             if (event.getAction() == KeyEvent.ACTION_DOWN
                     && event.getRepeatCount() == 0
                     && event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                adjustGainBy(-1.0f);
+                adjustVolumeStepBy(-1);
                 return true;
             }
         }
@@ -390,6 +394,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         settingsButton.setText("\u8bbe\u7f6e");
         settingsButton.setTextSize(14);
         settingsButton.setAllCaps(false);
+        styleButton(settingsButton, 0xFFE4ECE9, 0xFF10231F, dp(18));
         settingsButton.setOnClickListener(v -> showSimpleSettingsDialog());
         topActions.addView(settingsButton, weightedButtonParams());
         root.addView(topActions, matchWidthFixedHeight(52));
@@ -412,6 +417,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         toggleButton.setText("\u5f00\u59cb");
         toggleButton.setTextSize(24);
         toggleButton.setAllCaps(false);
+        styleButton(toggleButton, 0xFF2E6F63, 0xFFFFFFFF, dp(24));
         toggleButton.setOnClickListener(v -> {
             if (isListeningActive()) {
                 engine.stop();
@@ -425,8 +431,8 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(toggleButton, matchWidthFixedHeight(76));
 
         gainText = new TextView(this);
-        gainText.setText(String.format(Locale.US, "\u58f0\u97f3 %.0f", AppSettings.gain(this)));
-        gainText.setTextSize(18);
+        gainText.setText(volumeLabel(AppSettings.volumeStep(this)));
+        gainText.setTextSize(30);
         gainText.setTextColor(0xFF10231F);
         gainText.setGravity(Gravity.CENTER);
         gainText.setPadding(0, dp(28), 0, dp(8));
@@ -438,6 +444,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         gainSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (!fromUser) {
+                    return;
+                }
                 float gain = 0.2f + progress / 10.0f;
                 engine.setGain(gain);
                 gainText.setText(String.format(Locale.US, "\u58f0\u97f3 %.0f", gain));
@@ -462,11 +471,11 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         gainButtons.setPadding(0, dp(8), 0, dp(8));
 
         Button minusButton = makeGainButton("\u5c0f\u4e00\u70b9");
-        minusButton.setOnClickListener(v -> adjustGainBy(-1.0f));
+        minusButton.setOnClickListener(v -> adjustVolumeStepBy(-1));
         gainButtons.addView(minusButton, weightedButtonParams());
 
         Button plusButton = makeGainButton("\u5927\u4e00\u70b9");
-        plusButton.setOnClickListener(v -> adjustGainBy(1.0f));
+        plusButton.setOnClickListener(v -> adjustVolumeStepBy(1));
         gainButtons.addView(plusButton, weightedButtonParams());
 
         root.addView(gainButtons, matchWidthFixedHeight(92));
@@ -474,6 +483,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         pauseAutoButton = new Button(this);
         pauseAutoButton.setTextSize(18);
         pauseAutoButton.setAllCaps(false);
+        styleButton(pauseAutoButton, 0xFFD7E1DE, 0xFF10231F, dp(22));
         pauseAutoButton.setOnClickListener(v ->
                 setAutoListenPaused(!AppSettings.autoListenPaused(this), true));
         root.addView(pauseAutoButton, matchWidthFixedHeight(56));
@@ -501,6 +511,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         scrollView.addView(root);
         setContentView(scrollView);
         applyAutoRouteMode(false);
+        applySavedVolumeStep();
         updatePauseButton();
         if (AppSettings.autoMonitorEnabled(this)) {
             HeadsetMonitorService.start(this);
@@ -522,7 +533,27 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         button.setText(text);
         button.setTextSize(24);
         button.setAllCaps(false);
+        styleButton(button, 0xFFE7F1EE, 0xFF10231F, dp(24));
         return button;
+    }
+
+    private void styleButton(Button button, int backgroundColor, int textColor, int radius) {
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(backgroundColor);
+        background.setCornerRadius(radius);
+        button.setBackground(background);
+        button.setTextColor(textColor);
+    }
+
+    private String volumeLabel(int step) {
+        return STEP_LABELS[Math.max(0, Math.min(step, STEP_LABELS.length - 1))];
+    }
+
+    private float gainForStep(int step) {
+        float[] gains = AppSettings.extraLoudModeEnabled(this)
+                ? EXTRA_LOUD_STEP_GAINS
+                : NORMAL_STEP_GAINS;
+        return gains[Math.max(0, Math.min(step, gains.length - 1))];
     }
 
     private TextView makeHelpText(String text) {
@@ -590,6 +621,19 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 isChecked -> AppSettings.prefs(this).edit()
                         .putBoolean(AppSettings.KEY_VOICE_GUIDE, isChecked)
                         .apply());
+
+        addSettingSwitch(
+                content,
+                "\u66f4\u5927\u58f0\u6a21\u5f0f",
+                AppSettings.extraLoudModeEnabled(this),
+                "\u91cd\u5ea6\u8033\u80cc\u65f6\u6253\u5f00\uff1a\u754c\u9762\u8fd8\u662f\u5c0f\u58f0/\u5408\u9002/\u5927\u58f0\uff0c\u4f46\u5185\u90e8\u653e\u5927\u4f1a\u66f4\u9ad8\u3002",
+                isChecked -> {
+                    AppSettings.prefs(this).edit()
+                            .putBoolean(AppSettings.KEY_EXTRA_LOUD_MODE, isChecked)
+                            .apply();
+                    setVolumeStep(AppSettings.volumeStep(this), true);
+                    restartListeningServiceIfActive();
+                });
 
         Button setupButton = makeSettingsButton("\u6388\u6743\u4e0e\u540e\u53f0\u8bbe\u7f6e");
         setupButton.setOnClickListener(v -> showBackgroundSetupDialog());
@@ -967,6 +1011,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         button.setText(text);
         button.setTextSize(16);
         button.setAllCaps(false);
+        styleButton(button, 0xFFE4ECE9, 0xFF10231F, dp(16));
         return button;
     }
 
@@ -1539,11 +1584,29 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         syncSystemVolumeFromGain();
     }
 
-    private void adjustGainBy(float delta) {
-        float currentGain = 0.2f + gainSeek.getProgress() / 10.0f;
-        setGainProgressForValue(currentGain + delta);
+    private void applySavedVolumeStep() {
+        setVolumeStep(AppSettings.volumeStep(this), false);
+    }
+
+    private void adjustVolumeStepBy(int delta) {
+        int nextStep = Math.max(0, Math.min(AppSettings.volumeStep(this) + delta, 2));
+        setVolumeStep(nextStep, true);
         restartListeningServiceIfActive();
-        speakOncePerBurst(delta > 0 ? "\u589e\u5927" : "\u51cf\u5c0f");
+        speakOncePerBurst(delta > 0 ? "\u5927\u4e00\u70b9" : "\u5c0f\u4e00\u70b9");
+    }
+
+    private void setVolumeStep(int step, boolean persist) {
+        int safeStep = Math.max(0, Math.min(step, 2));
+        float gain = gainForStep(safeStep);
+        engine.setGain(gain);
+        setGainProgressForValue(gain);
+        gainText.setText(volumeLabel(safeStep));
+        if (persist) {
+            AppSettings.prefs(this).edit()
+                    .putInt(AppSettings.KEY_VOLUME_STEP, safeStep)
+                    .putFloat(AppSettings.KEY_GAIN, gain)
+                    .apply();
+        }
     }
 
     private void restartListeningServiceIfActive() {

@@ -29,6 +29,8 @@ final class AppSettings {
     static final String KEY_LONG_RANGE_PICKUP = "long_range_pickup";
     static final String KEY_INPUT_SOURCE_MODE = "input_source_mode";
     static final String KEY_GAIN = "gain";
+    static final String KEY_VOLUME_STEP = "volume_step";
+    static final String KEY_EXTRA_LOUD_MODE = "extra_loud_mode";
     static final String KEY_VOICE_ENHANCEMENT = "voice_enhancement";
     static final String KEY_FAR_PICKUP = "far_pickup";
     static final String KEY_ECHO_CANCELLATION = "echo_cancellation";
@@ -36,7 +38,7 @@ final class AppSettings {
     static final String KEY_NOISE_SUPPRESSION = "noise_suppression";
     static final String KEY_AI_NOISE_SUPPRESSION = "ai_noise_suppression";
     static final String KEY_AUTOMATIC_GAIN = "automatic_gain";
-    static final float DEFAULT_GAIN = 36.0f;
+    static final float DEFAULT_GAIN = 42.0f;
 
     static final String MODE_BLUETOOTH_DAILY = "bluetooth_daily";
     static final String MODE_WIRED_INDOOR = "wired_indoor";
@@ -147,6 +149,14 @@ final class AppSettings {
         return Math.max(0.2f, Math.min(
                 prefs(context).getFloat(KEY_GAIN, DEFAULT_GAIN),
                 120.0f));
+    }
+
+    static int volumeStep(Context context) {
+        return Math.max(0, Math.min(prefs(context).getInt(KEY_VOLUME_STEP, 1), 2));
+    }
+
+    static boolean extraLoudModeEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_EXTRA_LOUD_MODE, false);
     }
 
     static boolean voiceEnhancementEnabled(Context context) {
