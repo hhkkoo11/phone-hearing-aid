@@ -221,7 +221,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         setSystemMusicVolumeMax();
         if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
             engine.setGain(Math.max(savedGain, AppSettings.DEFAULT_GAIN));
-            engine.setOutputLimit(0.92f);
+            engine.setOutputLimit(0.90f);
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
             engine.setVoiceEnhancementEnabled(true);
@@ -229,7 +229,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setLongRangePickupEnabled(longRangePickup);
             engine.setEchoCancellationEnabled(echoCancellation);
             engine.setSelfVoiceReductionEnabled(selfVoiceReduction && profileEnabled);
-            engine.setNoiseSuppressionEnabled(false);
+            engine.setNoiseSuppressionEnabled(noiseSuppression);
             engine.setAiNoiseSuppressionEnabled(false);
             engine.setAutomaticGainEnabled(automaticGain);
         } else if (AppSettings.MODE_POCKET.equals(mode)) {

@@ -841,7 +841,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 content,
                 "\u8033\u673a\u8fde\u63a5\u81ea\u52a8\u5f00\u542f",
                 isWiredAutoStartEnabled(),
-                "\u68c0\u6d4b\u5230\u6709\u7ebf/USB \u6216\u84dd\u7259\u8033\u673a\u65f6\u81ea\u52a8\u5f00\u59cb\u52a9\u542c\uff1b\u6709\u7ebf\u4f18\u5148\uff0c\u6ca1\u6709\u6709\u7ebf\u624d\u7528\u84dd\u7259\u3002",
+                "\u68c0\u6d4b\u5230\u6709\u7ebf/USB \u8033\u673a\u65f6\u81ea\u52a8\u5f00\u59cb\u52a9\u542c\uff1b\u84dd\u7259\u4ec5\u4f5c\u5907\u7528\u3002",
                 isChecked -> {
                     AppSettings.prefs(this).edit()
                             .putBoolean(AppSettings.KEY_WIRED_AUTO_START, isChecked)
@@ -2002,16 +2002,16 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         suppressServiceRefresh = true;
         activeAppliedMode = AppSettings.MODE_WIRED_INDOOR;
         saveMode(AppSettings.MODE_WIRED_INDOOR);
-        engine.setOutputLimit(0.92f);
+        engine.setOutputLimit(0.90f);
         engine.setFeedbackProtectionEnabled(true);
         setBoneNoiseControlEnabled(false);
         setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
-        setVoiceEnhancementEnabled(false);
-        setFarPickupEnabled(false);
+        setVoiceEnhancementEnabled(true);
+        setFarPickupEnabled(true);
         setLongRangePickupEnabled(false);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
-        setNoiseSuppressionEnabled(false);
+        setNoiseSuppressionEnabled(AppSettings.noiseSuppressionEnabled(this));
         setAiNoiseSuppressionEnabled(false);
         setAutomaticGainEnabled(false);
         setGainProgressForValue(Math.max(AppSettings.gain(this), AppSettings.DEFAULT_GAIN));
@@ -2020,7 +2020,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         updateModeFeedback(AppSettings.MODE_WIRED_INDOOR);
         if (announce) {
             speak("\u6709\u7ebf\u6a21\u5f0f");
-            toast("\u5df2\u81ea\u52a8\u5207\u6362\u5230\u6709\u7ebf\u6a21\u5f0f");
+            toast("\u5df2\u81ea\u52a8\u5207\u6362\u5230\u6709\u7ebf\u5168\u573a\u666f\u6a21\u5f0f");
         }
     }
 
