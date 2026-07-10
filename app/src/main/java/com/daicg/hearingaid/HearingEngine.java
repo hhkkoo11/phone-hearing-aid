@@ -15,6 +15,7 @@ import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.media.audiofx.AcousticEchoCanceler;
 import android.media.audiofx.AutomaticGainControl;
+import android.media.audiofx.LoudnessEnhancer;
 import android.media.audiofx.NoiseSuppressor;
 import android.os.Build;
 import android.os.Process;
@@ -62,6 +63,7 @@ public final class HearingEngine {
     private String inputSourceMode = AppSettings.INPUT_PHONE_MIC;
     private boolean boneConductionNoiseControlEnabled;
     private boolean feedbackProtectionEnabled = true;
+    private boolean loudnessBoostEnabled = true;
 
     public HearingEngine(Context context, Listener listener) {
         this.context = context.getApplicationContext();
@@ -137,6 +139,10 @@ public final class HearingEngine {
         this.feedbackProtectionEnabled = enabled;
     }
 
+    public void setLoudnessBoostEnabled(boolean enabled) {
+        this.loudnessBoostEnabled = enabled;
+    }
+
     public void start() {
         if (running) {
             return;
@@ -198,6 +204,7 @@ public final class HearingEngine {
         AcousticEchoCanceler echoCanceler = null;
         NoiseSuppressor noiseSuppressor = null;
         AutomaticGainControl automaticGain = null;
+        LoudnessEnhancer loudnessEnhancer = null;
         AiNoiseSuppressor aiNoiseSuppressor = null;
 
         try {
@@ -236,10 +243,15 @@ public final class HearingEngine {
             }
 
             trimPlaybackBuffer(track, frameBuffer, bluetoothRoute);
+            track.setVolume(1.0f);
 
             AudioDeviceInfo preferredOutput = findPreferredOutputDevice();
             if (preferredOutput != null) {
                 track.setPreferredDevice(preferredOutput);
+            }
+
+            if (loudnessBoostEnabled) {
+                loudnessEnhancer = createLoudnessEnhancer(track.getAudioSessionId(), gain);
             }
 
             int sessionId = record.getAudioSessionId();
@@ -290,7 +302,7 @@ public final class HearingEngine {
                 }
                 float level = processAndMeasure(buffer, read, gain,
                         outputLimit, voiceEnhancementEnabled, farPickupEnabled, longRangePickupEnabled,
-                        selfVoiceReductionEnabled, voiceProcessor, feedbackGuard);
+                        selfVoiceReductionEnabled, loudnessBoostEnabled, voiceProcessor, feedbackGuard);
                 if (feedbackProtectionEnabled && feedbackGuard.shouldReduceGain()
                         && gain > 2.0f) {
                     gain = Math.max(2.0f, gain * 0.86f);
@@ -313,6 +325,7 @@ public final class HearingEngine {
                 aiNoiseSuppressor.close();
             }
             releaseEffect(automaticGain);
+            releaseEffect(loudnessEnhancer);
             releaseEffect(noiseSuppressor);
             releaseEffect(echoCanceler);
             if (record != null) {
@@ -335,7 +348,7 @@ public final class HearingEngine {
 
     private static float processAndMeasure(short[] buffer, int length, float gain, float outputLimit,
             boolean enhanceVoice, boolean farPickup, boolean longRangePickup, boolean reduceSelfVoice,
-            VoiceProcessor voiceProcessor, FeedbackGuard feedbackGuard) {
+            boolean loudnessBoost, VoiceProcessor voiceProcessor, FeedbackGuard feedbackGuard) {
         long sum = 0L;
         int peak = 0;
         int limit = Math.round(Short.MAX_VALUE * outputLimit);
@@ -365,14 +378,18 @@ public final class HearingEngine {
                 }
             }
             int sample = Math.round(input * gain);
+            if (loudnessBoost || Math.abs(sample) > limit) {
+                sample = compressAndLimit(sample, limit,
+                        loudnessBoost ? 0.58f : 0.72f,
+                        loudnessBoost ? 0.32f : 0.40f);
+            }
+            if (enhanceVoice) {
+                sample = voiceProcessor.smoothExtremeOutput(sample, gain);
+            }
             if (sample > Short.MAX_VALUE) {
                 sample = Short.MAX_VALUE;
             } else if (sample < Short.MIN_VALUE) {
                 sample = Short.MIN_VALUE;
-            }
-            if (enhanceVoice) {
-                sample = compressAndLimit(sample, limit);
-                sample = voiceProcessor.smoothExtremeOutput(sample, gain);
             }
             buffer[i] = (short) sample;
             int absSample = Math.abs(sample);
@@ -417,6 +434,18 @@ public final class HearingEngine {
             abs = limit;
         }
         return sign * abs;
+    }
+
+    private static LoudnessEnhancer createLoudnessEnhancer(int audioSessionId, float gain) {
+        try {
+            LoudnessEnhancer enhancer = new LoudnessEnhancer(audioSessionId);
+            int targetGainMb = gain >= 58.0f ? 900 : (gain >= 42.0f ? 700 : 450);
+            enhancer.setTargetGain(targetGainMb);
+            enhancer.setEnabled(true);
+            return enhancer;
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private static void trimPlaybackBuffer(AudioTrack track, int frameBuffer, boolean bluetoothRoute) {

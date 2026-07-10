@@ -66,8 +66,8 @@ import java.util.Set;
 public final class MainActivity extends Activity implements HearingEngine.Listener {
     private static final int REQUEST_AUDIO_PERMISSIONS = 1001;
     private static final int REQUEST_SETUP_PERMISSIONS = 1002;
-    private static final float[] NORMAL_STEP_GAINS = {28.0f, 42.0f, 58.0f};
-    private static final float[] EXTRA_LOUD_STEP_GAINS = {38.0f, 58.0f, 76.0f};
+    private static final float[] NORMAL_STEP_GAINS = {32.0f, 48.0f, 64.0f};
+    private static final float[] EXTRA_LOUD_STEP_GAINS = {42.0f, 64.0f, 82.0f};
     private static final String[] STEP_LABELS = {"\u5c0f\u58f0", "\u5408\u9002", "\u5927\u58f0"};
     private static final String OFFICIAL_REPOSITORY_URL =
             "https://github.com/hhkkoo11/phone-hearing-aid";
@@ -236,6 +236,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         engine.setAiNoiseSuppressionEnabled(aiNoiseSuppressionEnabled);
         engine.setAutomaticGainEnabled(automaticGainEnabled);
         engine.setInputSourceMode(inputSourceMode);
+        engine.setLoudnessBoostEnabled(AppSettings.moderateLoudnessBoostEnabled(this));
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         textToSpeech = new TextToSpeech(this, status -> {
@@ -621,6 +622,19 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 isChecked -> AppSettings.prefs(this).edit()
                         .putBoolean(AppSettings.KEY_VOICE_GUIDE, isChecked)
                         .apply());
+
+        addSettingSwitch(
+                content,
+                "\u4e2d\u5ea6\u8033\u80cc\u589e\u5f3a",
+                AppSettings.moderateLoudnessBoostEnabled(this),
+                "\u9ed8\u8ba4\u6253\u5f00\uff1a\u8ba9\u5c0f\u58f0\u66f4\u660e\u663e\uff0c\u5927\u58f0\u4f1a\u88ab\u538b\u4f4f\uff0c\u51cf\u5c11\u7834\u97f3\u3002",
+                isChecked -> {
+                    AppSettings.prefs(this).edit()
+                            .putBoolean(AppSettings.KEY_MODERATE_LOUDNESS_BOOST, isChecked)
+                            .apply();
+                    engine.setLoudnessBoostEnabled(isChecked);
+                    restartListeningServiceIfActive();
+                });
 
         addSettingSwitch(
                 content,
