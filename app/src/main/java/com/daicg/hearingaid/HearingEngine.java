@@ -374,7 +374,11 @@ public final class HearingEngine {
             if (enhanceVoice) {
                 float absInput = Math.abs(input);
                 if (absInput < (farPickup ? 60.0f : 100.0f)) {
-                    input *= 0.20f;
+                    input *= farPickup ? 0.35f : 0.20f;
+                } else if (farPickup && absInput < 760.0f) {
+                    float t = (absInput - 60.0f) / 700.0f;
+                    float boost = 1.28f - Math.max(0.0f, Math.min(1.0f, t)) * 0.18f;
+                    input *= boost;
                 }
             }
             int sample = Math.round(input * gain);

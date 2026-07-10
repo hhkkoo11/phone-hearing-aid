@@ -26,6 +26,12 @@
 
 ## 版本
 
-- versionCode: 67
-- versionName: wired-stable-1.0
+- versionCode: 68
+- versionName: wired-stable-1.1
 - APK: `release/hearing-aid-wired-stable.apk`
+
+## 1.1 调整
+
+- 有线室内模式加入轻量远声抬升。
+- 只对较小的人声段温和放大，近距离大声不额外放大。
+- 保持关闭复杂 AI 降噪和自声过滤，继续优先稳定、低延迟。

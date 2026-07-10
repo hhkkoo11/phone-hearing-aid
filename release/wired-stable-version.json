@@ -1,6 +1,6 @@
 {
-  "versionCode": 67,
-  "versionName": "wired-stable-1.0",
+  "versionCode": 68,
+  "versionName": "wired-stable-1.1",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/wired-stable/release/hearing-aid-wired-stable.apk",
-  "notes": "有线稳定版：默认有线室内模式，优先有线/USB 耳机低延迟稳定助听；切后台和息屏时通过前台服务与 WakeLock 尽量保持运行；隐藏容易误触的暂停按钮。"
+  "notes": "有线稳定版 1.1：默认有线室内模式，加入轻量远声抬升，只温和放大小声段，近距离大声不额外放大；继续优先有线/USB 耳机低延迟、后台和息屏稳定运行。"
 }
