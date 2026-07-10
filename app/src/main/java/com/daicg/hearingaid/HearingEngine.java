@@ -288,6 +288,7 @@ public final class HearingEngine {
             if (aiNoiseEnabled) {
                 aiNoiseSuppressor = AiNoiseSuppressor.create();
             }
+            boolean dataCollectionEnabled = AppSettings.outdoorDataCollectionEnabled(context);
             FeedbackGuard feedbackGuard = new FeedbackGuard();
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
@@ -314,7 +315,9 @@ public final class HearingEngine {
                 if (loudnessGuard.shouldWarn(level, gain)) {
                     listener.onLoudListening(gain);
                 }
-                TestDataLogger.appendFrameStats(context, buffer, read, sampleRate);
+                if (dataCollectionEnabled) {
+                    TestDataLogger.appendFrameStats(context, buffer, read, sampleRate);
+                }
                 listener.onLevel(level);
                 track.write(buffer, 0, read, AudioTrack.WRITE_BLOCKING);
             }
@@ -486,7 +489,7 @@ public final class HearingEngine {
 
     private static AudioAttributes buildOutputAttributes() {
         AudioAttributes.Builder builder = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH);
         if (Build.VERSION.SDK_INT >= 32) {
             builder.setSpatializationBehavior(AudioAttributes.SPATIALIZATION_BEHAVIOR_NEVER);
@@ -502,9 +505,7 @@ public final class HearingEngine {
         if (echoCancellationEnabled) {
             return MediaRecorder.AudioSource.VOICE_COMMUNICATION;
         }
-        return farPickupEnabled
-                ? MediaRecorder.AudioSource.MIC
-                : MediaRecorder.AudioSource.VOICE_RECOGNITION;
+        return MediaRecorder.AudioSource.MIC;
     }
 
     private static void releaseEffect(android.media.audiofx.AudioEffect effect) {

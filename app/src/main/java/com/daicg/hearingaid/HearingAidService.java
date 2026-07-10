@@ -23,11 +23,15 @@ public final class HearingAidService extends Service implements HearingEngine.Li
     private long lastLevelBroadcastAt;
     private long lastFeedbackToastAt;
     private boolean screenReceiverRegistered;
+    private boolean dataCollectionEnabled;
 
     private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            if (!dataCollectionEnabled) {
+                return;
+            }
             if (Intent.ACTION_SCREEN_OFF.equals(action)) {
                 TestDataLogger.appendEvent(HearingAidService.this, "screen_off");
             } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
@@ -137,7 +141,9 @@ public final class HearingAidService extends Service implements HearingEngine.Li
 
     @Override
     public void onLevel(float level) {
-        TestDataLogger.appendLevel(this, level);
+        if (dataCollectionEnabled) {
+            TestDataLogger.appendLevel(this, level);
+        }
         long now = android.os.SystemClock.uptimeMillis();
         if (now - lastLevelBroadcastAt < 80L) {
             return;
@@ -194,6 +200,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         boolean noiseSuppression = AppSettings.noiseSuppressionEnabled(this);
         boolean aiNoiseSuppression = AppSettings.aiNoiseSuppressionEnabled(this);
         boolean automaticGain = AppSettings.automaticGainEnabled(this);
+        dataCollectionEnabled = AppSettings.outdoorDataCollectionEnabled(this);
         engine.setInputSourceMode(AppSettings.inputSourceMode(this));
         engine.setAiNoiseSuppressionEnabled(aiNoiseSuppression);
         engine.setLoudnessBoostEnabled(AppSettings.moderateLoudnessBoostEnabled(this));
