@@ -377,6 +377,9 @@ public final class HearingEngine {
                     input *= 0.55f;
                 }
             }
+            if (loudnessBoost) {
+                input = protectCloseLoudSound(input, farPickup || longRangePickup);
+            }
             int sample = Math.round(input * gain);
             if (loudnessBoost || Math.abs(sample) > limit) {
                 sample = compressAndLimit(sample, limit,
@@ -405,6 +408,21 @@ public final class HearingEngine {
         float sign = input < 0.0f ? -1.0f : 1.0f;
         float softened = threshold + ((absInput - threshold) * ratio);
         return sign * softened;
+    }
+
+    private static float protectCloseLoudSound(float input, boolean widePickup) {
+        float absInput = Math.abs(input);
+        float firstThreshold = widePickup ? 1150.0f : 820.0f;
+        if (absInput <= firstThreshold) {
+            return input;
+        }
+        float protectedInput = softenNearLoudVoice(input, absInput, firstThreshold, 0.42f);
+        float protectedAbs = Math.abs(protectedInput);
+        float secondThreshold = widePickup ? 1850.0f : 1450.0f;
+        if (protectedAbs > secondThreshold) {
+            protectedInput = softenNearLoudVoice(protectedInput, protectedAbs, secondThreshold, 0.26f);
+        }
+        return protectedInput;
     }
 
     public static float[] analyzeVoiceSignature(short[] samples, int length) {
