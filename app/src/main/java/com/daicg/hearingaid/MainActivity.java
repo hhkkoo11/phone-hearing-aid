@@ -1616,7 +1616,6 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         int nextStep = Math.max(0, Math.min(AppSettings.volumeStep(this) + delta, 2));
         setVolumeStep(nextStep, true);
         restartListeningServiceIfActive();
-        speakOncePerBurst(delta > 0 ? "\u5927\u4e00\u70b9" : "\u5c0f\u4e00\u70b9");
     }
 
     private void setVolumeStep(int step, boolean persist) {

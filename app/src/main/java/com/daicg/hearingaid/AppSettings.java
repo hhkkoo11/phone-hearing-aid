@@ -70,7 +70,7 @@ final class AppSettings {
     }
 
     static boolean voiceGuideEnabled(Context context) {
-        return prefs(context).getBoolean(KEY_VOICE_GUIDE, true);
+        return prefs(context).getBoolean(KEY_VOICE_GUIDE, false);
     }
 
     static boolean callAssistEnabled(Context context) {
