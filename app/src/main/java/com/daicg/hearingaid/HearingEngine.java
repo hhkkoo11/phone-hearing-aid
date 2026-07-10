@@ -384,6 +384,10 @@ public final class HearingEngine {
                     float boost = 1.28f - Math.max(0.0f, Math.min(1.0f, t)) * 0.18f;
                     input *= boost;
                 }
+                if (voiceProcessor != null && gain >= 7.0f) {
+                    input = voiceProcessor.voiceShape(input);
+                    input = voiceProcessor.softenSharpEdge(input);
+                }
             }
             int sample = Math.round(input * gain);
             if (enhanceVoice) {
@@ -713,12 +717,12 @@ public final class HearingEngine {
         float voiceShape(float input) {
             float edge = input - previousPresenceInput;
             previousPresenceInput = input;
-            smoothedPresence = smoothedPresence * 0.84f + edge * 0.16f;
-            return input * 1.00f + smoothedPresence * 0.06f;
+            smoothedPresence = smoothedPresence * 0.90f + edge * 0.10f;
+            return input * 0.99f + smoothedPresence * 0.025f;
         }
 
         float softenSharpEdge(float input) {
-            edgeSmoother = edgeSmoother * 0.58f + input * 0.42f;
+            edgeSmoother = edgeSmoother * 0.42f + input * 0.58f;
             return edgeSmoother;
         }
 
