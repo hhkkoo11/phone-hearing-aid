@@ -392,6 +392,9 @@ public final class HearingEngine {
             int sample = Math.round(input * gain);
             if (enhanceVoice) {
                 sample = compressAndLimit(sample, limit);
+                if (voiceProcessor != null) {
+                    sample = voiceProcessor.deHissLight(sample);
+                }
             }
             if (sample > Short.MAX_VALUE) {
                 sample = Short.MAX_VALUE;
@@ -687,6 +690,7 @@ public final class HearingEngine {
         private float boneOutdoorPrevious;
         private float outputSmoother;
         private float edgeSmoother;
+        private float deHissOutput;
         private float extremeOutputSmoother;
         private float environmentFloor = 120.0f;
         private float echoTail;
@@ -724,6 +728,18 @@ public final class HearingEngine {
         float softenSharpEdge(float input) {
             edgeSmoother = edgeSmoother * 0.42f + input * 0.58f;
             return edgeSmoother;
+        }
+
+        int deHissLight(int sample) {
+            deHissOutput = deHissOutput * 0.62f + sample * 0.38f;
+            int smoothed = Math.round(deHissOutput);
+            if (smoothed > Short.MAX_VALUE) {
+                return Short.MAX_VALUE;
+            }
+            if (smoothed < Short.MIN_VALUE) {
+                return Short.MIN_VALUE;
+            }
+            return smoothed;
         }
 
         int smoothExtremeOutput(int sample, float gain) {
