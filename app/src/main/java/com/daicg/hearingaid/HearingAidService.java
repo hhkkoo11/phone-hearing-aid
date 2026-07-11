@@ -196,7 +196,7 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         }
         String mode = AppSettings.sceneMode(this);
         float savedGain = AppSettings.gain(this);
-        if (savedGain > 12.0f) {
+        if (savedGain > 14.0f) {
             savedGain = AppSettings.DEFAULT_GAIN;
             AppSettings.prefs(this).edit()
                     .putFloat(AppSettings.KEY_GAIN, savedGain)

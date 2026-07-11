@@ -68,7 +68,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private static final int REQUEST_AUDIO_PERMISSIONS = 1001;
     private static final int REQUEST_SETUP_PERMISSIONS = 1002;
     private static final float[] NORMAL_STEP_GAINS = {3.0f, 5.0f, 8.0f};
-    private static final float[] EXTRA_LOUD_STEP_GAINS = {5.0f, 7.0f, 10.0f};
+    private static final float[] EXTRA_LOUD_STEP_GAINS = {6.0f, 10.0f, 14.0f};
     private static final float[] BONE_STEP_GAINS = {5.0f, 7.0f, 10.0f};
     private static final String[] STEP_LABELS = {"\u5c0f\u58f0", "\u5408\u9002", "\u5927\u58f0"};
     private static final String OFFICIAL_REPOSITORY_URL =
@@ -653,7 +653,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
                 content,
                 "\u66f4\u5927\u58f0\u6a21\u5f0f",
                 AppSettings.extraLoudModeEnabled(this),
-                "\u91cd\u5ea6\u8033\u80cc\u65f6\u6253\u5f00\uff1a\u754c\u9762\u8fd8\u662f\u5c0f\u58f0/\u5408\u9002/\u5927\u58f0\uff0c\u4f46\u5185\u90e8\u653e\u5927\u4f1a\u66f4\u9ad8\u3002",
+                "\u91cd\u5ea6\u8033\u80cc\u65f6\u6253\u5f00\uff1a\u4e3b\u8981\u7ed9\u6709\u7ebf\u8033\u673a\u7528\u3002\u754c\u9762\u8fd8\u662f\u5c0f\u58f0/\u5408\u9002/\u5927\u58f0\uff0c\u4f46\u4e09\u6863\u90fd\u4f1a\u660e\u663e\u66f4\u5927\u58f0\u3002\u5982\u679c\u523a\u8033\u3001\u6c99\u6c99\u58f0\u53d8\u591a\u6216\u5578\u53eb\uff0c\u8bf7\u5173\u6389\u3002",
                 isChecked -> {
                     AppSettings.prefs(this).edit()
                             .putBoolean(AppSettings.KEY_EXTRA_LOUD_MODE, isChecked)
