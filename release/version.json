@@ -1,7 +1,7 @@
 {
-  "versionCode": 73,
-  "versionName": "wired-stable-1.6",
+  "versionCode": 75,
+  "versionName": "wired-stable-1.7",
   "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/wired-stable/release/hearing-aid-wired-stable.apk",
   "forceUpdate": false,
-  "notes": "有线耳机稳定版 1.6：减少讲话时的沙沙声和嘶嘶声，当前公开主线只推有线耳机稳定版。不强制更新。"
+  "notes": "有线耳机稳定版 1.7：更大声模式增强，普通模式保持稳定，当前公开主线只推有线耳机稳定版。不强制更新。"
 }

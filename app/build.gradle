@@ -10,8 +10,8 @@ android {
         applicationId "com.daicg.hearingaid"
         minSdk 26
         targetSdk 35
-        versionCode 74
-        versionName "wired-stable-1.7-test"
+        versionCode 75
+        versionName "wired-stable-1.7"
         externalNativeBuild {
             cmake {
                 cppFlags ""
