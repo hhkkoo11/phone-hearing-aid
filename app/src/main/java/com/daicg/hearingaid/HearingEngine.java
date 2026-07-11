@@ -19,8 +19,10 @@ import android.media.audiofx.LoudnessEnhancer;
 import android.media.audiofx.NoiseSuppressor;
 import android.os.Build;
 import android.os.Process;
+import android.util.Log;
 
 public final class HearingEngine {
+    private static final String TAG = "HearingEngine";
     public interface Listener {
         void onLevel(float level);
         void onError(String message);
@@ -181,8 +183,9 @@ public final class HearingEngine {
         audioManager.setMode(AudioManager.MODE_NORMAL);
         audioManager.setSpeakerphoneOn(false);
 
-        boolean wiredRoute = hasWiredOutput();
-        boolean bluetoothRoute = !wiredRoute && hasConnectedBluetoothAudioProfile();
+        HeadsetProfile headsetProfile = detectHeadsetProfile();
+        boolean wiredRoute = headsetProfile == HeadsetProfile.WIRED;
+        boolean bluetoothRoute = !wiredRoute;
         boolean aiNoiseEnabled = false;
         int sampleRate = bluetoothRoute ? BLUETOOTH_SAMPLE_RATE : WIRED_SAMPLE_RATE;
         int frameBuffer = bluetoothRoute ? BLUETOOTH_FRAME_BUFFER : WIRED_FRAME_BUFFER;
@@ -287,6 +290,9 @@ public final class HearingEngine {
                     selfVoiceProfileDiffRatio,
                     selfVoiceProfilePeakRatio,
                     boneConductionNoiseControlEnabled);
+            AdaptiveSpeechProcessor adaptiveProcessor = voiceEnhancementEnabled
+                    ? new AdaptiveSpeechProcessor(sampleRate, headsetProfile)
+                    : null;
             if (aiNoiseEnabled) {
                 aiNoiseSuppressor = AiNoiseSuppressor.create();
             }
@@ -295,6 +301,11 @@ public final class HearingEngine {
             LoudnessGuard loudnessGuard = new LoudnessGuard();
             record.startRecording();
             track.play();
+            Log.i(TAG, "audio started profile=" + headsetProfile
+                    + " sampleRate=" + sampleRate
+                    + " frame=" + frameBuffer
+                    + " input=" + describeDevice(preferredInput)
+                    + " output=" + describeDevice(preferredOutput));
 
             while (running) {
                 int read = record.read(buffer, 0, buffer.length, AudioRecord.READ_BLOCKING);
@@ -304,9 +315,17 @@ public final class HearingEngine {
                 if (aiNoiseSuppressor != null) {
                     aiNoiseSuppressor.processInPlace(buffer, read);
                 }
-                float level = processAndMeasure(buffer, read, gain,
-                        outputLimit, voiceEnhancementEnabled, farPickupEnabled,
-                        voiceProcessor, feedbackGuard);
+                float level;
+                if (adaptiveProcessor != null) {
+                    level = adaptiveProcessor.processInPlace(
+                            buffer, read, gain, outputLimit);
+                    feedbackGuard.observe(level, adaptiveProcessor.getLastPeakLevel());
+                } else {
+                    level = processAndMeasure(buffer, read, gain,
+                            outputLimit, false, farPickupEnabled,
+                            voiceProcessor, feedbackGuard);
+                }
+                feedbackGuard.observeTonality(buffer, read, sampleRate, level);
                 if (feedbackProtectionEnabled && feedbackGuard.shouldReduceGain()
                         && gain > 2.0f) {
                     gain = Math.max(2.0f, gain * 0.86f);
@@ -489,7 +508,7 @@ public final class HearingEngine {
     private static AudioAttributes buildOutputAttributes() {
         AudioAttributes.Builder builder = new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_MEDIA)
-                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC);
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH);
         if (Build.VERSION.SDK_INT >= 32) {
             builder.setSpatializationBehavior(AudioAttributes.SPATIALIZATION_BEHAVIOR_NEVER);
         }
@@ -524,10 +543,12 @@ public final class HearingEngine {
         }
         bluetooth |= hasConnectedBluetoothAudioProfile();
         if (wired) {
-            return "\u6709\u7ebf\u8033\u673a\u5df2\u8fde\u63a5";
+            return "\u6709\u7ebf\u8033\u673a\u5df2\u8fde\u63a5\u00b7\u6e05\u6670\u4eba\u58f0";
         }
         if (bluetooth) {
-            return "\u84dd\u7259\u8033\u673a\u5df2\u8fde\u63a5";
+            return isLikelyBoneConductionOutput()
+                    ? "\u9aa8\u4f20\u5bfc\u8033\u673a\u5df2\u8fde\u63a5\u00b7\u4eba\u58f0\u589e\u5f3a"
+                    : "\u84dd\u7259\u8033\u673a\u5df2\u8fde\u63a5\u00b7\u6e05\u6670\u4eba\u58f0";
         }
         return "\u8bf7\u8fde\u63a5\u8033\u673a";
     }
@@ -548,6 +569,41 @@ public final class HearingEngine {
             }
         }
         return hasConnectedBluetoothAudioProfile();
+    }
+
+    HeadsetProfile detectHeadsetProfile() {
+        boolean wired = hasWiredOutput();
+        CharSequence bluetoothName = null;
+        if (!wired) {
+            for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                if (isBluetooth(device.getType())) {
+                    bluetoothName = device.getProductName();
+                    break;
+                }
+            }
+        }
+        boolean manualBoneMode = AppSettings.MODE_BONE_CONDUCTION.equals(
+                AppSettings.sceneMode(context));
+        return HeadsetProfileDetector.detect(wired, bluetoothName, manualBoneMode);
+    }
+
+    public boolean isLikelyBoneConductionOutput() {
+        return hasBluetoothOutput()
+                && detectHeadsetProfile() == HeadsetProfile.BLUETOOTH_BONE;
+    }
+
+    String outputRouteKey() {
+        if (!hasWiredOutput() && !hasBluetoothOutput()) {
+            return "none";
+        }
+        StringBuilder key = new StringBuilder(detectHeadsetProfile().name());
+        for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+            if (isWired(device.getType()) || isBluetooth(device.getType())) {
+                key.append(':').append(device.getType()).append(':')
+                        .append(device.getProductName());
+            }
+        }
+        return key.toString();
     }
 
     private AudioDeviceInfo findPreferredOutputDevice() {
@@ -666,6 +722,8 @@ public final class HearingEngine {
     private static boolean isBluetooth(int type) {
         return type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
                 || type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+                || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                && type == AudioDeviceInfo.TYPE_HEARING_AID)
                 || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
                 && (type == AudioDeviceInfo.TYPE_BLE_HEADSET
                 || type == AudioDeviceInfo.TYPE_BLE_SPEAKER));
@@ -675,6 +733,13 @@ public final class HearingEngine {
         return type == AudioDeviceInfo.TYPE_BUILTIN_MIC
                 || type == AudioDeviceInfo.TYPE_TELEPHONY
                 || type == AudioDeviceInfo.TYPE_FM_TUNER;
+    }
+
+    private static String describeDevice(AudioDeviceInfo device) {
+        if (device == null) {
+            return "default";
+        }
+        return device.getType() + ":" + device.getProductName();
     }
 
     private static final class VoiceProcessor {
@@ -970,6 +1035,15 @@ public final class HearingEngine {
     private static final class FeedbackGuard {
         private int hotFrames;
         private int reduceCooldownFrames;
+        private int tonalFrames;
+        private int lastDominantBin = -1;
+        private int coefficientSampleRate;
+
+        private static final int[] FEEDBACK_FREQUENCIES = {
+                1800, 2400, 3200, 4000, 5000, 6300, 7800
+        };
+        private final double[] feedbackCoefficients =
+                new double[FEEDBACK_FREQUENCIES.length];
 
         void observe(float averageLevel, float peakLevel) {
             if (reduceCooldownFrames > 0) {
@@ -982,13 +1056,65 @@ public final class HearingEngine {
             }
         }
 
+        void observeTonality(short[] samples, int length, int sampleRate, float averageLevel) {
+            if (samples == null || length < 64 || averageLevel < 0.08f) {
+                tonalFrames = Math.max(0, tonalFrames - 2);
+                return;
+            }
+            double sumPower = 0.0;
+            double maximumPower = 0.0;
+            int dominantBin = -1;
+            ensureFeedbackCoefficients(sampleRate);
+            for (int i = 0; i < FEEDBACK_FREQUENCIES.length; i++) {
+                double power = goertzelPower(
+                        samples, length, feedbackCoefficients[i]);
+                sumPower += power;
+                if (power > maximumPower) {
+                    maximumPower = power;
+                    dominantBin = i;
+                }
+            }
+            float concentration = (float) (maximumPower / Math.max(1.0, sumPower));
+            if (concentration > 0.64f && dominantBin == lastDominantBin) {
+                tonalFrames++;
+            } else {
+                tonalFrames = Math.max(0, tonalFrames - 2);
+            }
+            lastDominantBin = dominantBin;
+        }
+
         boolean shouldReduceGain() {
-            return reduceCooldownFrames <= 0 && hotFrames > 96;
+            return reduceCooldownFrames <= 0 && (hotFrames > 120 || tonalFrames > 52);
         }
 
         void reset() {
             hotFrames = 0;
+            tonalFrames = 0;
             reduceCooldownFrames = 1800;
+        }
+
+        private static double goertzelPower(
+                short[] samples, int length, double coefficient) {
+            double previous = 0.0;
+            double previousTwo = 0.0;
+            for (int i = 0; i < length; i++) {
+                double current = samples[i] + coefficient * previous - previousTwo;
+                previousTwo = previous;
+                previous = current;
+            }
+            return previousTwo * previousTwo + previous * previous
+                    - coefficient * previous * previousTwo;
+        }
+
+        private void ensureFeedbackCoefficients(int sampleRate) {
+            if (coefficientSampleRate == sampleRate) {
+                return;
+            }
+            coefficientSampleRate = sampleRate;
+            for (int i = 0; i < FEEDBACK_FREQUENCIES.length; i++) {
+                double omega = 2.0 * Math.PI * FEEDBACK_FREQUENCIES[i] / sampleRate;
+                feedbackCoefficients[i] = 2.0 * Math.cos(omega);
+            }
         }
     }
 

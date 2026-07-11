@@ -13,32 +13,34 @@ import android.hardware.usb.UsbManager;
 import android.media.AudioDeviceCallback;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 
 public final class HeadsetMonitorService extends Service {
     private AudioManager audioManager;
     private boolean receiverRegistered;
     private boolean audioCallbackRegistered;
+    private final Handler routeHandler = new Handler(Looper.getMainLooper());
+    private String lastRouteKey = "none";
+    private final Runnable routeCheck = this::checkHeadsetAndStart;
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            checkHeadsetAndStart();
+            scheduleRouteCheck();
         }
     };
 
     private final AudioDeviceCallback audioDeviceCallback = new AudioDeviceCallback() {
         @Override
         public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
-            checkHeadsetAndStart();
+            scheduleRouteCheck();
         }
 
         @Override
         public void onAudioDevicesRemoved(AudioDeviceInfo[] removedDevices) {
-            HearingEngine engine = new HearingEngine(HeadsetMonitorService.this, NoopListener.INSTANCE);
-            if (!engine.hasWiredOutput() && !engine.hasBluetoothOutput()) {
-                HearingAidService.stop(HeadsetMonitorService.this);
-            }
+            scheduleRouteCheck();
         }
     };
 
@@ -82,12 +84,13 @@ public final class HeadsetMonitorService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        checkHeadsetAndStart();
+        scheduleRouteCheck();
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        routeHandler.removeCallbacks(routeCheck);
         if (audioManager != null && audioCallbackRegistered) {
             audioManager.unregisterAudioDeviceCallback(audioDeviceCallback);
             audioCallbackRegistered = false;
@@ -127,10 +130,24 @@ public final class HeadsetMonitorService extends Service {
             return;
         }
         HearingEngine engine = new HearingEngine(this, NoopListener.INSTANCE);
-        if ((engine.hasWiredOutput() || engine.hasBluetoothOutput())
-                && !HearingAidService.isActive()) {
-            HearingAidService.start(this);
+        boolean hasOutput = engine.hasWiredOutput() || engine.hasBluetoothOutput();
+        if (!hasOutput) {
+            lastRouteKey = "none";
+            HearingAidService.stop(this);
+            return;
         }
+        String currentRouteKey = engine.outputRouteKey();
+        if (!HearingAidService.isActive()) {
+            HearingAidService.start(this);
+        } else if (!currentRouteKey.equals(lastRouteKey) && !"none".equals(lastRouteKey)) {
+            HearingAidService.routeChanged(this);
+        }
+        lastRouteKey = currentRouteKey;
+    }
+
+    private void scheduleRouteCheck() {
+        routeHandler.removeCallbacks(routeCheck);
+        routeHandler.postDelayed(routeCheck, 280L);
     }
 
     private IntentFilter routeFilter() {

@@ -1968,12 +1968,12 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         suppressServiceRefresh = true;
         activeAppliedMode = AppSettings.MODE_BLUETOOTH_DAILY;
         saveMode(AppSettings.MODE_BLUETOOTH_DAILY);
-        engine.setOutputLimit(0.96f);
+        engine.setOutputLimit(0.88f);
         engine.setFeedbackProtectionEnabled(true);
         setBoneNoiseControlEnabled(false);
         setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
-        setVoiceEnhancementEnabled(false);
-        setFarPickupEnabled(false);
+        setVoiceEnhancementEnabled(true);
+        setFarPickupEnabled(true);
         setLongRangePickupEnabled(false);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
@@ -2048,15 +2048,21 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     }
 
     private void applyBoneConductionMode() {
+        applyBoneConductionMode(true, true);
+    }
+
+    private void applyBoneConductionMode(boolean announce, boolean persistAsManualMode) {
         suppressServiceRefresh = true;
         activeAppliedMode = AppSettings.MODE_BONE_CONDUCTION;
-        saveMode(AppSettings.MODE_BONE_CONDUCTION);
-        engine.setOutputLimit(0.96f);
+        if (persistAsManualMode) {
+            saveMode(AppSettings.MODE_BONE_CONDUCTION);
+        }
+        engine.setOutputLimit(0.90f);
         engine.setFeedbackProtectionEnabled(true);
         setBoneNoiseControlEnabled(true);
         setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
-        setVoiceEnhancementEnabled(false);
-        setFarPickupEnabled(false);
+        setVoiceEnhancementEnabled(true);
+        setFarPickupEnabled(true);
         setLongRangePickupEnabled(false);
         setEchoCancellationEnabled(false);
         setSelfVoiceReductionEnabled(false);
@@ -2068,8 +2074,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         suppressServiceRefresh = false;
         refreshListeningServiceIfActive();
         updateModeFeedback(AppSettings.MODE_BONE_CONDUCTION);
-        speak("\u9aa8\u4f20\u5bfc\u6a21\u5f0f");
-        toast("\u5df2\u5f00\u542f\u9aa8\u4f20\u5bfc\u6a21\u5f0f\uff0c\u9ed8\u8ba4 12 \u500d\u6e05\u6670\u6863");
+        if (announce) {
+            speak("\u9aa8\u4f20\u5bfc\u6a21\u5f0f");
+            toast("\u5df2\u81ea\u52a8\u4f18\u5316\u9aa8\u4f20\u5bfc\u4eba\u58f0");
+        }
     }
 
     private void applySevereMode() {
@@ -2097,9 +2105,10 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private void applyAutoRouteMode(boolean announce) {
         if (engine.hasWiredOutput()) {
             applyWiredIndoorMode(announce);
-        } else if (AppSettings.MODE_BONE_CONDUCTION.equals(AppSettings.sceneMode(this))
-                && engine.hasBluetoothOutput()) {
-            applyBoneConductionMode();
+        } else if (engine.isLikelyBoneConductionOutput()) {
+            boolean manualMode = AppSettings.MODE_BONE_CONDUCTION.equals(
+                    AppSettings.sceneMode(this));
+            applyBoneConductionMode(announce, manualMode);
         } else if (engine.hasBluetoothOutput()) {
             applyBluetoothDailyMode(announce);
         } else {

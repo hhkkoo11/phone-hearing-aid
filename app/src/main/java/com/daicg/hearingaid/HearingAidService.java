@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 public final class HearingAidService extends Service implements HearingEngine.Listener {
     private static final String ACTION_REFRESH = "com.daicg.hearingaid.REFRESH";
+    private static final String ACTION_ROUTE_CHANGED = "com.daicg.hearingaid.ROUTE_CHANGED";
     static final String ACTION_LEVEL = "com.daicg.hearingaid.LEVEL";
     static final String EXTRA_LEVEL = "level";
     private static volatile boolean active;
@@ -63,6 +64,19 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         }
     }
 
+    public static void routeChanged(Context context) {
+        if (!active) {
+            start(context);
+            return;
+        }
+        try {
+            Intent intent = new Intent(context, HearingAidService.class);
+            intent.setAction(ACTION_ROUTE_CHANGED);
+            context.startForegroundService(intent);
+        } catch (RuntimeException ignored) {
+        }
+    }
+
     public static boolean isActive() {
         return active;
     }
@@ -106,6 +120,10 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             return START_NOT_STICKY;
         }
         registerScreenReceiver();
+        if (ACTION_ROUTE_CHANGED.equals(intent == null ? null : intent.getAction())) {
+            restartEngineForRoute();
+            return START_STICKY;
+        }
         ensureEngine();
         if (ACTION_REFRESH.equals(intent == null ? null : intent.getAction())) {
             applySavedMode();
@@ -219,7 +237,35 @@ public final class HearingAidService extends Service implements HearingEngine.Li
         engine.setAiNoiseSuppressionEnabled(aiNoiseSuppression);
         engine.setLoudnessBoostEnabled(AppSettings.moderateLoudnessBoostEnabled(this));
         setSystemMusicVolumeMax();
-        if (AppSettings.MODE_WIRED_INDOOR.equals(mode)) {
+        HeadsetProfile headsetProfile = engine.detectHeadsetProfile();
+        if (AppSettings.MODE_POCKET.equals(mode)) {
+            engine.setGain(savedGain);
+            engine.setOutputLimit(0.72f);
+            engine.setBoneConductionNoiseControlEnabled(false);
+            engine.setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
+            engine.setVoiceEnhancementEnabled(true);
+            engine.setFarPickupEnabled(false);
+            engine.setLongRangePickupEnabled(false);
+            engine.setEchoCancellationEnabled(false);
+            engine.setSelfVoiceReductionEnabled(false);
+            engine.setNoiseSuppressionEnabled(noiseSuppression);
+            engine.setAiNoiseSuppressionEnabled(false);
+            engine.setAutomaticGainEnabled(false);
+        } else if (AppSettings.MODE_SEVERE.equals(mode)) {
+            engine.setGain(savedGain);
+            engine.setOutputLimit(0.90f);
+            engine.setBoneConductionNoiseControlEnabled(
+                    headsetProfile == HeadsetProfile.BLUETOOTH_BONE);
+            engine.setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
+            engine.setVoiceEnhancementEnabled(true);
+            engine.setFarPickupEnabled(true);
+            engine.setLongRangePickupEnabled(longRangePickup);
+            engine.setEchoCancellationEnabled(false);
+            engine.setSelfVoiceReductionEnabled(false);
+            engine.setNoiseSuppressionEnabled(false);
+            engine.setAiNoiseSuppressionEnabled(false);
+            engine.setAutomaticGainEnabled(false);
+        } else if (headsetProfile == HeadsetProfile.WIRED) {
             engine.setGain(Math.max(savedGain, AppSettings.DEFAULT_GAIN));
             engine.setOutputLimit(0.90f);
             engine.setBoneConductionNoiseControlEnabled(false);
@@ -231,58 +277,45 @@ public final class HearingAidService extends Service implements HearingEngine.Li
             engine.setSelfVoiceReductionEnabled(selfVoiceReduction && profileEnabled);
             engine.setNoiseSuppressionEnabled(noiseSuppression);
             engine.setAiNoiseSuppressionEnabled(false);
-            engine.setAutomaticGainEnabled(automaticGain);
-        } else if (AppSettings.MODE_POCKET.equals(mode)) {
-            engine.setGain(savedGain);
-            engine.setOutputLimit(0.72f);
-            engine.setBoneConductionNoiseControlEnabled(false);
-            engine.setVoiceEnhancementEnabled(voiceEnhancement);
-            engine.setFarPickupEnabled(farPickup);
-            engine.setLongRangePickupEnabled(longRangePickup);
-            engine.setEchoCancellationEnabled(echoCancellation);
-            engine.setSelfVoiceReductionEnabled(selfVoiceReduction);
-            engine.setNoiseSuppressionEnabled(noiseSuppression);
-            engine.setAutomaticGainEnabled(automaticGain);
-        } else if (AppSettings.MODE_SEVERE.equals(mode)) {
-            engine.setGain(savedGain);
-            engine.setOutputLimit(0.96f);
-            engine.setBoneConductionNoiseControlEnabled(false);
-            engine.setVoiceEnhancementEnabled(voiceEnhancement);
-            engine.setFarPickupEnabled(farPickup);
-            engine.setLongRangePickupEnabled(longRangePickup);
-            engine.setEchoCancellationEnabled(echoCancellation);
-            engine.setSelfVoiceReductionEnabled(selfVoiceReduction);
-            engine.setNoiseSuppressionEnabled(noiseSuppression);
-            engine.setAutomaticGainEnabled(automaticGain);
-        } else if (AppSettings.MODE_BONE_CONDUCTION.equals(mode)) {
+            engine.setAutomaticGainEnabled(false);
+        } else if (headsetProfile == HeadsetProfile.BLUETOOTH_BONE) {
             engine.setGain(Math.max(savedGain, 7.0f));
-            engine.setOutputLimit(0.96f);
+            engine.setOutputLimit(0.90f);
             engine.setBoneConductionNoiseControlEnabled(true);
-            engine.setVoiceEnhancementEnabled(voiceEnhancement);
-            engine.setFarPickupEnabled(farPickup);
-            engine.setLongRangePickupEnabled(longRangePickup);
-            engine.setEchoCancellationEnabled(echoCancellation);
-            engine.setSelfVoiceReductionEnabled(selfVoiceReduction);
+            engine.setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
+            engine.setVoiceEnhancementEnabled(true);
+            engine.setFarPickupEnabled(true);
+            engine.setLongRangePickupEnabled(false);
+            engine.setEchoCancellationEnabled(false);
+            engine.setSelfVoiceReductionEnabled(false);
             engine.setNoiseSuppressionEnabled(false);
             engine.setAiNoiseSuppressionEnabled(false);
-            engine.setVoiceEnhancementEnabled(false);
             engine.setAutomaticGainEnabled(false);
             setSystemMusicVolumeMax();
         } else {
             engine.setGain(savedGain);
-            engine.setOutputLimit(0.90f);
+            engine.setOutputLimit(0.88f);
             engine.setBoneConductionNoiseControlEnabled(false);
             engine.setInputSourceMode(AppSettings.INPUT_PHONE_MIC);
-            engine.setVoiceEnhancementEnabled(false);
-            engine.setFarPickupEnabled(farPickup);
-            engine.setLongRangePickupEnabled(longRangePickup);
-            engine.setEchoCancellationEnabled(echoCancellation);
-            engine.setSelfVoiceReductionEnabled(selfVoiceReduction);
+            engine.setVoiceEnhancementEnabled(true);
+            engine.setFarPickupEnabled(true);
+            engine.setLongRangePickupEnabled(false);
+            engine.setEchoCancellationEnabled(false);
+            engine.setSelfVoiceReductionEnabled(false);
             engine.setNoiseSuppressionEnabled(false);
             engine.setAiNoiseSuppressionEnabled(false);
-            engine.setAutomaticGainEnabled(automaticGain);
+            engine.setAutomaticGainEnabled(false);
         }
         engine.setFeedbackProtectionEnabled(true);
+    }
+
+    private void restartEngineForRoute() {
+        if (engine != null) {
+            engine.stop();
+        }
+        engine = new HearingEngine(this, this);
+        applySavedMode();
+        engine.start();
     }
 
     private void setSystemMusicVolumeMax() {

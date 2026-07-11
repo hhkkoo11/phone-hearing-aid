@@ -10,8 +10,8 @@ android {
         applicationId "com.daicg.hearingaid"
         minSdk 26
         targetSdk 35
-        versionCode 75
-        versionName "wired-stable-1.7"
+        versionCode 76
+        versionName "adaptive-audio-2.0-test1"
         externalNativeBuild {
             cmake {
                 cppFlags ""
@@ -25,4 +25,8 @@ android {
             version "3.22.1"
         }
     }
+}
+
+dependencies {
+    testImplementation "junit:junit:4.13.2"
 }
