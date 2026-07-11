@@ -512,7 +512,7 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
         root.addView(levelMeter, matchWidthFixedHeight(18));
 
         TextView footerText = new TextView(this);
-        footerText.setText("\u795d\u60a8\u4f7f\u7528\u987a\u5229\uff0c\u8f6f\u4ef6\u6c38\u4e45\u514d\u8d39\u3002");
+        footerText.setText("\u795d\u60a8\u4f7f\u7528\u987a\u5229\uff0c\u5982\u679c\u4f7f\u7528\u4e2d\u9047\u5230\u95ee\u9898\uff0c\u8bf7\u8054\u7cfb\u6211\uff0c\u8f6f\u4ef6\u6c38\u4e45\u514d\u8d39\uff0c\u80fd\u5e2e\u52a9\u5230\u60a8\u662f\u6211\u7684\u8363\u5e78\u3002");
         footerText.setTextSize(14);
         footerText.setTextColor(0xFF5A6B66);
         footerText.setGravity(Gravity.CENTER);

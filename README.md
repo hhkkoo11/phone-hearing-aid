@@ -7,10 +7,10 @@
 ## 当前稳定版
 
 - 分支：`wired-stable`
-- 版本：`wired-stable-1.4`
+- 版本：`wired-stable-1.6`
 - 主线：有线耳机
-- 实测反馈：有线耳机可用，轻度底噪已做保守处理
-- 回退点：`wired-stable-1.2`、`wired-stable-1.3`
+- 实测反馈：有线耳机可用，讲话时沙沙/嘶嘶声已减少
+- 回退点：`wired-stable-1.4`、`wired-stable-1.6`
 
 ## 主要功能
 
