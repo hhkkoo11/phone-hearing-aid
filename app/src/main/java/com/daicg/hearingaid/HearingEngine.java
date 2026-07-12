@@ -574,11 +574,13 @@ public final class HearingEngine {
     HeadsetProfile detectHeadsetProfile() {
         boolean wired = hasWiredOutput();
         CharSequence bluetoothName = null;
+        int bestBluetoothPriority = -1;
         if (!wired) {
             for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
-                if (isBluetooth(device.getType())) {
+                int priority = bluetoothOutputPriority(device.getType());
+                if (priority > bestBluetoothPriority) {
+                    bestBluetoothPriority = priority;
                     bluetoothName = device.getProductName();
-                    break;
                 }
             }
         }
@@ -608,12 +610,15 @@ public final class HearingEngine {
 
     private AudioDeviceInfo findPreferredOutputDevice() {
         AudioDeviceInfo bluetooth = null;
+        int bestBluetoothPriority = -1;
         for (AudioDeviceInfo device : audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
             int type = device.getType();
             if (isWired(type)) {
                 return device;
             }
-            if (isBluetooth(type)) {
+            int priority = bluetoothOutputPriority(type);
+            if (priority > bestBluetoothPriority) {
+                bestBluetoothPriority = priority;
                 bluetooth = device;
             }
         }
@@ -727,6 +732,25 @@ public final class HearingEngine {
                 || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
                 && (type == AudioDeviceInfo.TYPE_BLE_HEADSET
                 || type == AudioDeviceInfo.TYPE_BLE_SPEAKER));
+    }
+
+    static int bluetoothOutputPriority(int type) {
+        if (type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
+            return 50;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                && (type == AudioDeviceInfo.TYPE_BLE_HEADSET
+                || type == AudioDeviceInfo.TYPE_BLE_SPEAKER)) {
+            return 45;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                && type == AudioDeviceInfo.TYPE_HEARING_AID) {
+            return 40;
+        }
+        if (type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO) {
+            return 10;
+        }
+        return -1;
     }
 
     private static boolean isPhoneMicrophone(int type) {

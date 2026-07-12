@@ -3,6 +3,8 @@ package com.daicg.hearingaid;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import android.media.AudioDeviceInfo;
+
 import org.junit.Test;
 
 public final class AdaptiveSpeechProcessorTest {
@@ -19,6 +21,13 @@ public final class AdaptiveSpeechProcessorTest {
         assertEquals(
                 HeadsetProfile.WIRED,
                 HeadsetProfileDetector.detect(true, "USB Audio", true));
+    }
+
+    @Test
+    public void mediaBluetoothOutputAlwaysWinsOverScoCallOutput() {
+        assertTrue(
+                HearingEngine.bluetoothOutputPriority(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP)
+                        > HearingEngine.bluetoothOutputPriority(AudioDeviceInfo.TYPE_BLUETOOTH_SCO));
     }
 
     @Test
