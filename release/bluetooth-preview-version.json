@@ -1,0 +1,7 @@
+{
+  "versionCode": 78,
+  "versionName": "bluetooth-preview-2.0.0",
+  "apkUrl": "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/bluetooth-preview/release/hearing-aid-bluetooth-preview.apk",
+  "forceUpdate": false,
+  "notes": "蓝牙耳机先行版 2.0.0：支持蓝牙入耳式、开放式和骨传导类耳机；修复同时连接 A2DP 音乐通道和 SCO 通话通道时无声的问题；加入三频段人声增强、轻度风噪与嘶声抑制、动态压缩、限幅及后台息屏运行。非强制更新。"
+}

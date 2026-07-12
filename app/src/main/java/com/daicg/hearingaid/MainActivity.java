@@ -74,9 +74,9 @@ public final class MainActivity extends Activity implements HearingEngine.Listen
     private static final String OFFICIAL_REPOSITORY_URL =
             "https://github.com/hhkkoo11/phone-hearing-aid";
     private static final String[] UPDATE_JSON_URLS = {
-            "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/wired-stable/release/wired-stable-version.json",
-            "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/wired-stable/release/wired-stable-version.json",
-            "https://github.com/hhkkoo11/phone-hearing-aid/raw/refs/heads/wired-stable/release/wired-stable-version.json"
+            "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/bluetooth-preview/release/bluetooth-preview-version.json",
+            "https://raw.githubusercontent.com/hhkkoo11/phone-hearing-aid/refs/heads/bluetooth-preview/release/bluetooth-preview-version.json",
+            "https://github.com/hhkkoo11/phone-hearing-aid/raw/refs/heads/bluetooth-preview/release/bluetooth-preview-version.json"
     };
     private static volatile boolean visible;
 

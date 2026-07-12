@@ -10,8 +10,8 @@ android {
         applicationId "com.daicg.hearingaid"
         minSdk 26
         targetSdk 35
-        versionCode 77
-        versionName "adaptive-audio-2.0-test2"
+        versionCode 78
+        versionName "bluetooth-preview-2.0.0"
         externalNativeBuild {
             cmake {
                 cppFlags ""
